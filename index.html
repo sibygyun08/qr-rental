@@ -1,0 +1,51 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR 물품 대여 시스템</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <main class="container">
+    <h1>📦 물품 대여 시스템</h1>
+    <p class="subtitle">QR코드 기반 물품 관리 서비스</p>
+
+    <section class="card">
+      <h2 id="itemName">노트북 A</h2>
+      <p>물품번호: <span id="itemId">001</span></p>
+      <p>현재 상태: <strong id="status">대여 가능</strong></p>
+      <p id="borrowerInfo"></p>
+
+      <input
+        type="text"
+        id="username"
+        placeholder="이름을 입력하세요"
+        maxlength="30"
+      >
+
+      <button id="rentBtn" onclick="rentItem()">대여하기</button>
+      <button id="returnBtn" onclick="returnItem()">반납하기</button>
+      <p id="message"></p>
+    </section>
+
+    <section class="card">
+      <h2>📋 관리자 현황판</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>물품</th>
+            <th>상태</th>
+            <th>대여자</th>
+          </tr>
+        </thead>
+        <tbody id="itemTable"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
