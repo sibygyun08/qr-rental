@@ -1,51 +1,7 @@
-
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QR 물품 대여 시스템</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-
-  <main class="container">
-    <h1>📦 물품 대여 시스템</h1>
-    <p class="subtitle">QR코드 기반 물품 관리 서비스</p>
-
-    <section class="card">
-      <h2 id="itemName">노트북 A</h2>
-      <p>물품번호: <span id="itemId">001</span></p>
-      <p>현재 상태: <strong id="status">대여 가능</strong></p>
-      <p id="borrowerInfo"></p>
-
-      <input
-        type="text"
-        id="username"
-        placeholder="이름을 입력하세요"
-        maxlength="30"
-      >
-
-      <button id="rentBtn" onclick="rentItem()">대여하기</button>
-      <button id="returnBtn" onclick="returnItem()">반납하기</button>
-      <p id="message"></p>
-    </section>
-
-    <section class="card">
-      <h2>📋 관리자 현황판</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>물품</th>
-            <th>상태</th>
-            <th>대여자</th>
-          </tr>
-        </thead>
-        <tbody id="itemTable"></tbody>
-      </table>
-    </section>
-  </main>
-
-  <script src="script.js"></script>
-</body>
-</html>
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>QRental | 사용자</title><link rel="stylesheet" href="style.css"><style>[hidden]{display:none!important}.auth-wrap{min-height:100vh;display:grid;place-items:center;padding:20px}.auth-card{max-width:430px;width:100%;padding:30px;border-radius:20px;background:var(--panel);border:1px solid var(--border)}.auth-card form,.rental-form{display:grid;gap:14px}.auth-card .button,.rental-form .button{width:100%}.user-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.account-name{font-size:12px;color:var(--muted)}.user-logout{background:#405671;color:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 14px;cursor:pointer}.list-actions{display:flex;gap:8px;flex-wrap:wrap}.list-actions button{font-size:12px;padding:8px 12px}.user-card{padding:16px;background:var(--panel);border:1px solid var(--border);border-radius:14px;margin-bottom:12px}.rental-form{margin-top:20px}.loan-item{padding:12px;border-bottom:1px solid var(--border)}.loan-item:last-child{border:0}</style></head>
+<body class="user-page">
+<main id="loginScreen" class="auth-wrap"><section class="auth-card"><span class="brand-icon">Q</span><h1>QRental 로그인</h1><p class="hint">등록된 Firebase 계정으로 로그인하세요.</p><form id="userLoginForm"><label>이메일<input id="userEmail" type="email" required autocomplete="username"></label><label>비밀번호<input id="userPassword" type="password" required autocomplete="current-password"></label><button class="button primary">로그인</button></form><p id="loginNotice" class="notice" role="status"></p></section></main>
+<main id="userApp" class="shell user-shell" hidden><header class="topbar"><div class="brand"><span class="brand-icon">Q</span><div><span class="eyebrow">QRental</span><h1>물품 대여·반납</h1></div></div><div class="user-actions"><span id="accountName" class="account-name"></span><button class="user-logout" id="userLogoutBtn">로그아웃</button></div></header><section class="hero user-hero"><div><span class="eyebrow light">EQUIPMENT CHECKOUT</span><h2>필요한 물품을<br>간편하게 이용하세요.</h2><p>대여 현황은 모든 기기에서 동기화됩니다.</p></div><span class="hero-art">▣</span></section>
+<section class="panel"><div class="section-title"><div><span class="eyebrow">01 / AVAILABLE</span><h2>물품 목록</h2></div></div><div class="table-wrap"><table><thead><tr><th>물품</th><th>상태</th><th>대여하기</th></tr></thead><tbody id="equipmentTable"></tbody></table></div><p id="emptyMessage" class="empty" hidden>물품이 없습니다.</p></section>
+<section class="panel" id="rentPanel" hidden><div class="section-title"><div><span class="eyebrow">02 / RENT</span><h2>물품 대여</h2></div></div><p id="selectedItem" class="hint"></p><form id="rentForm" class="rental-form"><label>반납예정일<input type="date" id="dueDate" required></label><button id="rentButton" class="button primary">대여 신청</button></form><p class="hint">대여자는 로그인한 본인 계정으로 자동 기록됩니다.</p></section>
+<section class="panel"><div class="section-title"><div><span class="eyebrow">03 / MY LOANS</span><h2>내 대여 내역</h2></div></div><div id="myLoans"></div><p id="noLoans" class="empty" hidden>대여 기록이 없습니다.</p></section><p id="userNotice" class="notice" role="status" aria-live="polite"></p><footer>QRental · 테스트 버전 · 실제 운영 전 보안 규칙 검증이 필요합니다.</footer></main><script type="module" src="user-auth.js"></script></body></html>
