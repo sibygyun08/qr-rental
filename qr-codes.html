@@ -1,0 +1,471 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1">
+
+  <title>QRental | QR코드 관리</title>
+  <link rel="stylesheet" href="style.css">
+
+  <style>
+    body {
+      background: #202936;
+      color: #f4f7fb;
+      font-family: Arial, sans-serif;
+      margin: 0;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    .qr-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 20px;
+    }
+
+    .qr-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 30px;
+    }
+
+    .qr-panel {
+      background: #303d4d;
+      border: 1px solid #485667;
+      border-radius: 18px;
+      padding: 24px;
+      margin-bottom: 25px;
+    }
+
+    .qr-panel h1,
+    .qr-panel h2 {
+      margin-top: 0;
+    }
+
+    .qr-help {
+      color: #becfe0;
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    .qr-input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 13px;
+      border-radius: 10px;
+      border: 1px solid #62748a;
+      background: #1e2937;
+      color: white;
+      font-size: 14px;
+      margin: 12px 0;
+    }
+
+    .qr-button {
+      background: #86b7f2;
+      color: #15263a;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 18px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .qr-button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .qr-link {
+      color: #a9ccfa;
+      text-decoration: none;
+    }
+
+    .qr-grid {
+      display: grid;
+      grid-template-columns:
+        repeat(auto-fit, minmax(230px, 1fr));
+      gap: 18px;
+    }
+
+    .qr-card {
+      background: white;
+      color: #172536;
+      border-radius: 18px;
+      padding: 22px;
+      text-align: center;
+      break-inside: avoid;
+      overflow-wrap: anywhere;
+    }
+
+    .qr-card h3 {
+      margin: 0 0 6px;
+      font-size: 19px;
+    }
+
+    .qr-card p {
+      color: #66768a;
+      font-size: 12px;
+    }
+
+    .qr-image {
+      display: flex;
+      justify-content: center;
+      padding: 14px 0;
+    }
+
+    .qr-image img,
+    .qr-image canvas {
+      max-width: 100%;
+    }
+
+    .qr-status {
+      font-size: 13px;
+      font-weight: bold;
+      margin-top: 8px;
+    }
+
+    .qr-error {
+      color: #ffb8b8;
+      line-height: 1.6;
+    }
+
+    @media print {
+      body {
+        background: white;
+        color: black;
+      }
+
+      .no-print {
+        display: none !important;
+      }
+
+      .qr-container {
+        max-width: none;
+        padding: 0;
+      }
+
+      .qr-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+
+      .qr-card {
+        border: 1px solid #aaa;
+        border-radius: 4px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="qr-container">
+
+    <header class="qr-header no-print">
+      <div>
+        <span style="color:#86b7f2">
+          QRENTAL / ADMIN
+        </span>
+        <h1>물품별 QR코드 관리</h1>
+      </div>
+
+      <a href="admin.html" class="qr-link">
+        ← 관리자 화면으로
+      </a>
+    </header>
+
+    <section id="authPanel"
+             class="qr-panel no-print">
+      <h2>관리자 권한 확인 중...</h2>
+      <p class="qr-help">
+        Firebase 로그인 상태를 확인하고 있어요.
+      </p>
+    </section>
+
+    <div id="qrApp" hidden>
+
+      <section class="qr-panel no-print">
+        <h2>QR코드에 사용할 웹사이트 주소</h2>
+
+        <p class="qr-help">
+          휴대폰으로 스캔하려면 인터넷에서
+          접속 가능한 QRental 사용자 주소가 필요해요.
+          localhost 주소는 다른 휴대폰에서 열리지 않습니다.
+        </p>
+
+        <label for="siteUrl">
+          QRental 사용자 웹사이트 주소
+        </label>
+
+        <input
+          class="qr-input"
+          id="siteUrl"
+          type="url"
+          placeholder="https://example.com/qr-rental/index.html"
+        >
+
+        <button id="generateButton"
+                class="qr-button"
+                type="button">
+          QR코드 만들기
+        </button>
+
+        <button id="printButton"
+                class="qr-button"
+                type="button"
+                hidden>
+          QR코드 인쇄하기
+        </button>
+
+        <p id="qrMessage" class="qr-help"
+           role="status"></p>
+      </section>
+
+      <section id="printArea">
+        <div class="qr-panel no-print">
+          <h2>등록된 물품</h2>
+          <p id="itemCount" class="qr-help">
+            물품 목록을 불러오는 중...
+          </p>
+        </div>
+
+        <div id="qrGrid" class="qr-grid"></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <script type="module">
+    import {
+      auth,
+      db
+    } from "./firebase-config.js";
+
+    import {
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js";
+
+    import {
+      doc,
+      getDoc,
+      collection,
+      onSnapshot
+    } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js";
+
+    const $ = id => document.getElementById(id);
+
+    let items = [];
+    let verifiedAdmin = false;
+    let unsubscribe = null;
+    let lastBaseUrl = "";
+
+    function setMessage(text, error = false) {
+      $("qrMessage").textContent = text;
+      $("qrMessage").className =
+        error ? "qr-error" : "qr-help";
+    }
+
+    function renderQRCodes(baseUrl) {
+      const grid = $("qrGrid");
+      grid.replaceChildren();
+
+      if (typeof QRCode === "undefined") {
+        setMessage(
+          "QR코드 생성 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.",
+          true
+        );
+        return;
+      }
+
+      for (const item of items) {
+        const target = new URL(baseUrl);
+        target.searchParams.set("item", item.id);
+
+        const card = document.createElement("article");
+        card.className = "qr-card";
+
+        const title = document.createElement("h3");
+        title.textContent = item.name || "이름 없는 물품";
+
+        const description = document.createElement("p");
+        description.textContent =
+          item.description || "QRental 공용 물품";
+
+        const qrBox = document.createElement("div");
+        qrBox.className = "qr-image";
+
+        const status = document.createElement("div");
+        status.className = "qr-status";
+        status.textContent =
+          item.status === "rented"
+            ? "현재 대여 중"
+            : "대여 가능";
+
+        card.append(
+          title,
+          description,
+          qrBox,
+          status
+        );
+
+        grid.appendChild(card);
+
+        try {
+          new QRCode(qrBox, {
+            text: target.toString(),
+            width: 180,
+            height: 180,
+            colorDark: "#14253a",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        } catch (error) {
+          console.error("QR 생성 오류:", error);
+
+          const message = document.createElement("p");
+          message.textContent =
+            "이 물품의 QR코드를 만들지 못했습니다.";
+
+          qrBox.replaceChildren(message);
+        }
+      }
+
+      $("printButton").hidden = items.length === 0;
+
+      setMessage(
+        `${items.length}개 물품의 QR코드를 만들었습니다. 인쇄 전에 휴대폰에서 테스트해 주세요.`
+      );
+    }
+
+    $("generateButton").addEventListener(
+      "click",
+      () => {
+        if (!verifiedAdmin) return;
+
+        const rawUrl = $("siteUrl").value.trim();
+
+        let target;
+
+        try {
+          target = new URL(rawUrl);
+        } catch {
+          setMessage(
+            "웹사이트 주소를 정확히 입력해 주세요.",
+            true
+          );
+          return;
+        }
+
+        if (target.protocol !== "https:") {
+          setMessage(
+            "휴대폰에서 사용할 HTTPS 웹사이트 주소를 입력해 주세요. localhost 주소로 QR코드를 인쇄하면 안 됩니다.",
+            true
+          );
+          return;
+        }
+
+        if (
+          !target.pathname.endsWith("/") &&
+          !target.pathname.endsWith("/index.html")
+        ) {
+          setMessage(
+            "사용자 화면 주소는 / 또는 /index.html로 끝나야 해요.",
+            true
+          );
+          return;
+        }
+
+        // QR 주소에는 item만 넣음
+        target.search = "";
+        target.hash = "";
+
+        lastBaseUrl = target.toString();
+
+        renderQRCodes(lastBaseUrl);
+      }
+    );
+
+    $("printButton").addEventListener(
+      "click",
+      () => window.print()
+    );
+
+    onAuthStateChanged(auth, async user => {
+      verifiedAdmin = false;
+      lastBaseUrl = "";
+      $("qrApp").hidden = true;
+      $("qrGrid").replaceChildren();
+
+      if (unsubscribe) {
+        unsubscribe();
+        unsubscribe = null;
+      }
+
+      if (!user) {
+        $("authPanel").innerHTML =
+          '<h2>로그인이 필요합니다</h2>' +
+          '<a class="qr-link" href="login.html">' +
+          '관리자 로그인 화면으로 이동</a>';
+        return;
+      }
+
+      try {
+        const adminDoc = await getDoc(
+          doc(db, "admins", user.uid)
+        );
+
+        if (
+          !adminDoc.exists() ||
+          adminDoc.data().role !== "admin"
+        ) {
+          $("authPanel").textContent =
+            "관리자 권한이 없는 계정입니다.";
+          return;
+        }
+
+        verifiedAdmin = true;
+        $("authPanel").hidden = true;
+        $("qrApp").hidden = false;
+
+        unsubscribe = onSnapshot(
+          collection(db, "equipment"),
+          snapshot => {
+            items = snapshot.docs.map(
+              itemDoc => ({
+                id: itemDoc.id,
+                ...itemDoc.data()
+              })
+            );
+
+            $("itemCount").textContent =
+              `등록된 물품 ${items.length}개`;
+
+            if (lastBaseUrl) {
+              renderQRCodes(lastBaseUrl);
+            }
+          },
+          error => {
+            console.error("물품 조회 오류:", error);
+            setMessage(
+              "물품 목록을 불러오지 못했습니다.",
+              true
+            );
+          }
+        );
+
+      } catch (error) {
+        console.error("권한 확인 오류:", error);
+        $("authPanel").textContent =
+          "관리자 권한을 확인하지 못했습니다.";
+      }
+    });
+  </script>
+</body>
+</html>
