@@ -1,0 +1,252 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1">
+  <title>QRental | 관리자 로그인</title>
+  <link rel="stylesheet" href="style.css">
+
+  <style>
+    * { box-sizing: border-box; }
+
+    [hidden] { display: none !important; }
+
+    .login-wrap {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: #202936;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 430px;
+      padding: 36px;
+      border-radius: 20px;
+      background: #303d4d;
+      border: 1px solid #485667;
+      color: #fff;
+    }
+
+    .login-logo {
+      display: inline-grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: #86b7f2;
+      color: #14243a;
+      font-size: 23px;
+      font-weight: 800;
+    }
+
+    .login-card h1 {
+      margin: 22px 0 8px;
+      font-size: 28px;
+    }
+
+    .login-card p {
+      color: #b9cce0;
+      line-height: 1.6;
+    }
+
+    .login-card form {
+      display: grid;
+      gap: 15px;
+      margin-top: 25px;
+    }
+
+    .login-card label {
+      display: grid;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .login-card input {
+      width: 100%;
+      padding: 14px;
+      border-radius: 11px;
+      border: 1px solid #58708c;
+      background: #394c63;
+      color: white;
+      font: inherit;
+    }
+
+    .login-card button {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 11px;
+      background: #86b7f2;
+      color: #14243a;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .login-card button:disabled {
+      opacity: .6;
+      cursor: wait;
+    }
+
+    .login-error {
+      color: #ffbbbb !important;
+    }
+
+    .login-success {
+      color: #adf0c8 !important;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="login-wrap">
+    <section class="login-card">
+      <span class="login-logo">Q</span>
+
+      <h1>관리자 로그인</h1>
+      <p>QRental 관리자 계정으로 로그인해 주세요.</p>
+
+      <form id="loginForm">
+        <label>
+          이메일
+          <input id="email"
+                 type="email"
+                 autocomplete="username"
+                 required
+                 placeholder="관리자 이메일">
+        </label>
+
+        <label>
+          비밀번호
+          <input id="password"
+                 type="password"
+                 autocomplete="current-password"
+                 required
+                 placeholder="비밀번호">
+        </label>
+
+        <button id="loginButton" type="submit">
+          로그인하기
+        </button>
+      </form>
+
+      <p id="loginMessage" role="status"
+         aria-live="polite"></p>
+    </section>
+  </main>
+
+  <script type="module">
+    import { auth, db } from "./firebase-config.js";
+
+    import {
+      onAuthStateChanged,
+      signInWithEmailAndPassword,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js";
+
+    import {
+      doc,
+      getDoc
+    } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js";
+
+    const form = document.getElementById("loginForm");
+    const button = document.getElementById("loginButton");
+    const message = document.getElementById("loginMessage");
+
+    let checking = false;
+
+    function showMessage(text, type = "") {
+      message.textContent = text;
+      message.className =
+        type === "error"
+          ? "login-error"
+          : type === "success"
+            ? "login-success"
+            : "";
+    }
+
+    async function checkAdmin(user) {
+      if (!user || checking) return false;
+
+      checking = true;
+
+      try {
+        const adminRef = doc(db, "admins", user.uid);
+        const snapshot = await getDoc(adminRef);
+
+        if (
+          snapshot.exists() &&
+          snapshot.data().role === "admin"
+        ) {
+          showMessage("관리자 인증 성공! 이동 중...", "success");
+
+          // 관리자 화면으로 자동 이동
+          window.location.replace("admin.html");
+          return true;
+        }
+
+        await signOut(auth);
+        showMessage("관리자 권한이 없는 계정입니다.", "error");
+        return false;
+
+      } catch (error) {
+        console.error("관리자 확인 오류:", error.code);
+        showMessage(
+          "관리자 권한 확인에 실패했습니다.",
+          "error"
+        );
+        return false;
+
+      } finally {
+        checking = false;
+      }
+    }
+
+    // 이미 로그인한 관리자라면 자동 이동
+    onAuthStateChanged(auth, async user => {
+      if (user) {
+        showMessage("로그인 상태를 확인하고 있어요...");
+        await checkAdmin(user);
+      }
+    });
+
+    // 로그인 버튼
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+
+      button.disabled = true;
+      showMessage("관리자 계정 확인 중...");
+
+      try {
+        const email =
+          document.getElementById("email").value.trim();
+
+        const password =
+          document.getElementById("password").value;
+
+        const result = await signInWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+
+        await checkAdmin(result.user);
+
+      } catch (error) {
+        console.error("관리자 로그인 오류:", error.code);
+        showMessage(
+          "로그인에 실패했습니다. 이메일과 비밀번호를 확인해 주세요.",
+          "error"
+        );
+
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
