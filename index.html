@@ -1,7 +1,165 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>QRental | 사용자</title><link rel="stylesheet" href="style.css"><style>[hidden]{display:none!important}.auth-wrap{min-height:100vh;display:grid;place-items:center;padding:20px}.auth-card{max-width:430px;width:100%;padding:30px;border-radius:20px;background:var(--panel);border:1px solid var(--border)}.auth-card form,.rental-form{display:grid;gap:14px}.auth-card .button,.rental-form .button{width:100%}.user-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.account-name{font-size:12px;color:var(--muted)}.user-logout{background:#405671;color:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 14px;cursor:pointer}.list-actions{display:flex;gap:8px;flex-wrap:wrap}.list-actions button{font-size:12px;padding:8px 12px}.user-card{padding:16px;background:var(--panel);border:1px solid var(--border);border-radius:14px;margin-bottom:12px}.rental-form{margin-top:20px}.loan-item{padding:12px;border-bottom:1px solid var(--border)}.loan-item:last-child{border:0}</style></head>
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QRental | 물품 대여</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    [hidden] { display: none !important; }
+    .qr-wrap { max-width: 960px; margin: auto; padding: 28px 16px; }
+    .qr-box { background: #303d4d; border: 1px solid #485667;
+      border-radius: 18px; padding: 24px; margin-bottom: 20px; }
+    .qr-box h1, .qr-box h2 { margin: 0 0 14px; }
+    .qr-muted { color: #c0d0e1; line-height: 1.7; }
+    .qr-grid { display: grid; gap: 13px; }
+    .qr-input { box-sizing: border-box; width: 100%; padding: 13px;
+      background: #202936; color: #fff; border: 1px solid #64748b;
+      border-radius: 10px; font: inherit; }
+    .qr-btn { padding: 12px 18px; border: 0; border-radius: 10px;
+      background: #86b7f2; color: #14243a; font-weight: bold;
+      cursor: pointer; }
+    .qr-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .qr-subbtn { background: #425773; color: white; }
+    .qr-head { display: flex; justify-content: space-between;
+      align-items: center; gap: 12px; flex-wrap: wrap; }
+    .qr-table { width: 100%; border-collapse: collapse; }
+    .qr-table th, .qr-table td { padding: 13px 9px;
+      border-bottom: 1px solid #536174; text-align: left; }
+    .qr-scroll { overflow-x: auto; }
+    .qr-record { border-top: 1px solid #536174;
+      padding: 15px 0; }
+    .qr-record p { margin: 8px 0; }
+    .qr-note { padding: 12px; margin: 12px 0; border-radius: 10px;
+      background: #243548; color: #d5e7fa; }
+    .qr-error { color: #ffb7b7; }
+    .qr-success { color: #a6f3c4; }
+    .qr-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  </style>
+</head>
 <body class="user-page">
-<main id="loginScreen" class="auth-wrap"><section class="auth-card"><span class="brand-icon">Q</span><h1>QRental 로그인</h1><p class="hint">등록된 Firebase 계정으로 로그인하세요.</p><form id="userLoginForm"><label>이메일<input id="userEmail" type="email" required autocomplete="username"></label><label>비밀번호<input id="userPassword" type="password" required autocomplete="current-password"></label><button class="button primary">로그인</button></form><p id="loginNotice" class="notice" role="status"></p></section></main>
-<main id="userApp" class="shell user-shell" hidden><header class="topbar"><div class="brand"><span class="brand-icon">Q</span><div><span class="eyebrow">QRental</span><h1>물품 대여·반납</h1></div></div><div class="user-actions"><span id="accountName" class="account-name"></span><button class="user-logout" id="userLogoutBtn">로그아웃</button></div></header><section class="hero user-hero"><div><span class="eyebrow light">EQUIPMENT CHECKOUT</span><h2>필요한 물품을<br>간편하게 이용하세요.</h2><p>대여 현황은 모든 기기에서 동기화됩니다.</p></div><span class="hero-art">▣</span></section>
-<section class="panel"><div class="section-title"><div><span class="eyebrow">01 / AVAILABLE</span><h2>물품 목록</h2></div></div><div class="table-wrap"><table><thead><tr><th>물품</th><th>상태</th><th>대여하기</th></tr></thead><tbody id="equipmentTable"></tbody></table></div><p id="emptyMessage" class="empty" hidden>물품이 없습니다.</p></section>
-<section class="panel" id="rentPanel" hidden><div class="section-title"><div><span class="eyebrow">02 / RENT</span><h2>물품 대여</h2></div></div><p id="selectedItem" class="hint"></p><form id="rentForm" class="rental-form"><label>반납예정일<input type="date" id="dueDate" required></label><button id="rentButton" class="button primary">대여 신청</button></form><p class="hint">대여자는 로그인한 본인 계정으로 자동 기록됩니다.</p></section>
-<section class="panel"><div class="section-title"><div><span class="eyebrow">03 / MY LOANS</span><h2>내 대여 내역</h2></div></div><div id="myLoans"></div><p id="noLoans" class="empty" hidden>대여 기록이 없습니다.</p></section><p id="userNotice" class="notice" role="status" aria-live="polite"></p><footer>QRental · 테스트 버전 · 실제 운영 전 보안 규칙 검증이 필요합니다.</footer></main><script type="module" src="user-auth.js"></script></body></html>
+  <main class="qr-wrap">
+    <header class="qr-head" style="margin-bottom:26px">
+      <div>
+        <p style="color:#86b7f2">QRENTAL / EQUIPMENT</p>
+        <h1>QRental 물품 대여</h1>
+      </div>
+      <button id="userLogoutBtn" class="qr-btn qr-subbtn"
+        hidden type="button">로그아웃</button>
+    </header>
+
+    <section id="loadingScreen" class="qr-box">
+      <h2>로그인 상태 확인 중...</h2>
+    </section>
+
+    <section id="loginScreen" class="qr-box" hidden>
+      <h2>직원 로그인</h2>
+      <p class="qr-muted">한 번 로그인하면 같은 브라우저에서 상태가 유지돼요.</p>
+      <form id="userLoginForm" class="qr-grid">
+        <input class="qr-input" id="userEmail" type="email"
+          autocomplete="username" placeholder="이메일" required>
+        <input class="qr-input" id="userPassword" type="password"
+          autocomplete="current-password" placeholder="비밀번호" required>
+        <button class="qr-btn" type="submit">로그인하기</button>
+      </form>
+      <p id="loginNotice" role="status"></p>
+      <p class="qr-muted">처음 이용하시나요?</p>
+      <button id="showSignupBtn" class="qr-btn qr-subbtn"
+        type="button">직원 회원가입</button>
+    </section>
+
+    <section id="signupScreen" class="qr-box" hidden>
+      <h2>직원 회원가입</h2>
+      <p class="qr-muted">
+        가입 후 관리자 승인이 완료되어야 대여할 수 있어요.
+      </p>
+      <form id="signupForm" class="qr-grid">
+        <input class="qr-input" id="signupName" type="text"
+          maxlength="40" placeholder="직원 이름" required>
+        <input class="qr-input" id="signupEmail" type="email"
+          autocomplete="email" placeholder="이메일" required>
+        <input class="qr-input" id="signupPassword" type="password"
+          autocomplete="new-password" minlength="8"
+          placeholder="비밀번호 (8자 이상)" required>
+        <button class="qr-btn" type="submit">가입 신청하기</button>
+      </form>
+      <p id="signupNotice" role="status"></p>
+      <button id="backLoginBtn" class="qr-btn qr-subbtn"
+        type="button">로그인 화면으로</button>
+    </section>
+
+    <section id="profileScreen" class="qr-box" hidden>
+      <h2>직원 정보 등록</h2>
+      <p class="qr-muted">
+        기존 계정에 이름이 등록되어 있지 않아요.
+        직원 이름을 입력하고 승인을 요청해 주세요.
+      </p>
+      <form id="profileForm" class="qr-grid">
+        <input class="qr-input" id="profileName" type="text"
+          maxlength="40" placeholder="직원 이름" required>
+        <button class="qr-btn" type="submit">승인 요청하기</button>
+      </form>
+      <p id="profileNotice" role="status"></p>
+    </section>
+
+    <section id="pendingScreen" class="qr-box" hidden>
+      <h2>관리자 승인 대기 중 🔐</h2>
+      <p id="pendingText" class="qr-muted"></p>
+      <p class="qr-muted">
+        관리자가 승인하면 자동으로 대여 화면이 열려요.
+      </p>
+    </section>
+
+    <div id="userApp" hidden>
+      <section class="qr-box">
+        <div class="qr-head">
+          <div>
+            <p style="color:#86b7f2">WELCOME</p>
+            <h2 id="welcomeName"></h2>
+          </div>
+          <span>✅ 승인된 사용자</span>
+        </div>
+      </section>
+
+      <section class="qr-box">
+        <h2>01 / 물품 목록</h2>
+        <p class="qr-muted">
+          QR코드로 들어오면 해당 물품을 자동으로 찾아줘요.
+        </p>
+        <div class="qr-scroll">
+          <table class="qr-table">
+            <thead>
+              <tr><th>물품</th><th>상태</th><th>기능</th></tr>
+            </thead>
+            <tbody id="equipmentTable"></tbody>
+          </table>
+        </div>
+        <p id="emptyMessage" hidden>등록된 물품이 없습니다.</p>
+      </section>
+
+      <section id="rentPanel" class="qr-box" hidden>
+        <h2>02 / 물품 대여</h2>
+        <p id="selectedItem"></p>
+        <form id="rentForm" class="qr-grid">
+          <label for="dueDate">반납예정일</label>
+          <input id="dueDate" class="qr-input" type="date" required>
+          <button id="rentButton" class="qr-btn"
+            type="submit">대여하기</button>
+        </form>
+      </section>
+
+      <section class="qr-box">
+        <h2>03 / 내 대여 기록</h2>
+        <div id="myLoans"></div>
+        <p id="noLoans" hidden>아직 대여 기록이 없습니다.</p>
+      </section>
+
+      <p id="userNotice" class="qr-note" role="status"
+        aria-live="polite"></p>
+    </div>
+  </main>
+
+  <script type="module" src="user-auth.js"></script>
+</body>
+</html>
