@@ -1,0 +1,378 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QRental | 계정 관리</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+
+    body {
+      margin: 0;
+      background: #202936;
+      color: #f4f7fb;
+      font-family: Arial, sans-serif;
+    }
+
+    .wrap {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 36px 18px;
+    }
+
+    .card {
+      background: #303d4d;
+      border: 1px solid #485667;
+      border-radius: 20px;
+      padding: 28px;
+      margin-bottom: 18px;
+    }
+
+    h1 { margin: 12px 0; }
+    h2 { font-size: 19px; margin: 0 0 14px; }
+
+    p {
+      color: #c5d5e5;
+      line-height: 1.7;
+      overflow-wrap: anywhere;
+    }
+
+    label {
+      display: block;
+      margin: 14px 0 8px;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px;
+      background: #202936;
+      color: white;
+      border: 1px solid #73869d;
+      border-radius: 11px;
+      font-size: 15px;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 12px;
+      padding: 14px;
+      border: 0;
+      border-radius: 11px;
+      background: #86b7f2;
+      color: #15263a;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: .55;
+      cursor: wait;
+    }
+
+    .secondary {
+      background: #475d78;
+      color: white;
+    }
+
+    a { color: #9bc8ff; }
+
+    .message {
+      min-height: 22px;
+      color: #b9f2d0;
+      font-size: 14px;
+    }
+
+    .message.error { color: #ffb7b7; }
+
+    .tag {
+      display: inline-block;
+      background: #405775;
+      color: #cfe6ff;
+      padding: 7px 11px;
+      border-radius: 9px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="wrap">
+    <p style="color:#86b7f2">QRENTAL / ACCOUNT</p>
+    <h1>QRental 계정 관리</h1>
+
+    <section id="checking" class="card">
+      <h2>계정 확인 중...</h2>
+      <p>Firebase 로그인 상태를 확인하고 있어요.</p>
+    </section>
+
+    <section id="signedInPanel" class="card" hidden>
+      <h2>이메일 인증</h2>
+      <p id="accountEmail"></p>
+
+      <p id="verifyStatus" class="tag"></p>
+
+      <p>
+        처음 사용하는 직원은 이메일 인증을 완료한 뒤
+        관리자의 가입 승인을 받아야 해요.
+      </p>
+
+      <button id="sendVerifyBtn" type="button">
+        인증 이메일 보내기
+      </button>
+
+      <button id="checkVerifyBtn"
+              class="secondary" type="button">
+        인증 완료 여부 새로 확인
+      </button>
+
+      <p id="verifyMessage" class="message"
+         role="status"></p>
+
+      <button id="logoutBtn" class="secondary"
+              type="button">
+        로그아웃
+      </button>
+    </section>
+
+    <section id="signedOutPanel" class="card" hidden>
+      <h2>이메일 인증을 위한 로그인</h2>
+      <p>
+        이메일 인증 메일을 보내려면
+        먼저 본인 계정으로 로그인해 주세요.
+      </p>
+
+      <form id="loginForm">
+        <label for="loginEmail">이메일</label>
+        <input id="loginEmail" type="email"
+               autocomplete="username" required>
+
+        <label for="loginPassword">비밀번호</label>
+        <input id="loginPassword" type="password"
+               autocomplete="current-password" required>
+
+        <button type="submit">로그인하기</button>
+      </form>
+
+      <p id="loginMessage" class="message"
+         role="status"></p>
+    </section>
+
+    <section class="card">
+      <h2>비밀번호를 잊으셨나요?</h2>
+      <p>
+        가입한 이메일을 입력하면
+        비밀번호 재설정 안내 메일을 요청할 수 있어요.
+      </p>
+
+      <form id="resetForm">
+        <label for="resetEmail">이메일</label>
+        <input id="resetEmail" type="email"
+               autocomplete="email"
+               placeholder="이메일 주소" required>
+
+        <button type="submit">
+          비밀번호 재설정 메일 보내기
+        </button>
+      </form>
+
+      <p id="resetMessage" class="message"
+         role="status"></p>
+    </section>
+
+    <section class="card">
+      <a href="index.html">← 직원 대여 화면으로 돌아가기</a>
+    </section>
+  </main>
+
+  <script type="module">
+    import { auth } from "./firebase-config.js";
+
+    import {
+      onAuthStateChanged,
+      signInWithEmailAndPassword,
+      signOut,
+      sendEmailVerification,
+      sendPasswordResetEmail,
+      reload,
+      getIdToken
+    } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js";
+
+    const $ = id => document.getElementById(id);
+
+    auth.languageCode = "ko";
+
+    function showMessage(id, text, error = false) {
+      $(id).textContent = text;
+      $(id).className = error
+        ? "message error"
+        : "message";
+    }
+
+    function displayUser(user) {
+      $("checking").hidden = true;
+      $("signedInPanel").hidden = !user;
+      $("signedOutPanel").hidden = !!user;
+
+      if (!user) return;
+
+      $("accountEmail").textContent =
+        "로그인 계정: " + (user.email || "-");
+
+      $("verifyStatus").textContent = user.emailVerified
+        ? "✅ 이메일 인증 완료"
+        : "⏳ 이메일 인증 필요";
+
+      $("sendVerifyBtn").disabled = user.emailVerified;
+    }
+
+    onAuthStateChanged(auth, displayUser);
+
+    $("loginForm").addEventListener(
+      "submit",
+      async event => {
+        event.preventDefault();
+
+        const button = event.target.querySelector("button");
+        button.disabled = true;
+
+        try {
+          await signInWithEmailAndPassword(
+            auth,
+            $("loginEmail").value.trim(),
+            $("loginPassword").value
+          );
+
+          $("loginForm").reset();
+
+          showMessage("loginMessage", "");
+        } catch (error) {
+          console.error("로그인 오류:", error.code);
+          showMessage(
+            "loginMessage",
+            "로그인에 실패했습니다. 계정 정보를 확인해 주세요.",
+            true
+          );
+        } finally {
+          button.disabled = false;
+        }
+      }
+    );
+
+    $("sendVerifyBtn").addEventListener(
+      "click",
+      async () => {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const button = $("sendVerifyBtn");
+        button.disabled = true;
+
+        try {
+          await reload(user);
+
+          if (user.emailVerified) {
+            await getIdToken(user, true);
+            displayUser(user);
+            showMessage(
+              "verifyMessage",
+              "이미 이메일 인증이 완료된 계정입니다."
+            );
+            return;
+          }
+
+          await sendEmailVerification(user);
+
+          showMessage(
+            "verifyMessage",
+            "인증 메일을 보냈어요! 이메일함을 확인해 주세요."
+          );
+        } catch (error) {
+          console.error("인증 메일 오류:", error.code);
+          showMessage(
+            "verifyMessage",
+            "메일 발송에 실패했어요. 잠시 후 다시 시도하거나 이메일 주소를 확인해 주세요.",
+            true
+          );
+        } finally {
+          displayUser(user);
+        }
+      }
+    );
+
+    $("checkVerifyBtn").addEventListener(
+      "click",
+      async () => {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const button = $("checkVerifyBtn");
+        button.disabled = true;
+
+        try {
+          await reload(user);
+          await getIdToken(user, true);
+          displayUser(user);
+
+          showMessage(
+            "verifyMessage",
+            user.emailVerified
+              ? "이메일 인증 완료! 직원 대여 화면으로 돌아가도 돼요."
+              : "아직 인증되지 않았어요. 메일의 인증 링크를 먼저 눌러주세요.",
+            !user.emailVerified
+          );
+        } catch (error) {
+          console.error("인증 확인 오류:", error.code);
+          showMessage(
+            "verifyMessage",
+            "인증 상태를 확인하지 못했습니다.",
+            true
+          );
+        } finally {
+          button.disabled = false;
+        }
+      }
+    );
+
+    $("resetForm").addEventListener(
+      "submit",
+      async event => {
+        event.preventDefault();
+
+        const button = event.target.querySelector("button");
+        button.disabled = true;
+
+        try {
+          await sendPasswordResetEmail(
+            auth,
+            $("resetEmail").value.trim()
+          );
+
+          showMessage(
+            "resetMessage",
+            "계정이 등록되어 있다면 비밀번호 재설정 메일이 발송됩니다. 이메일함을 확인해 주세요."
+          );
+        } catch (error) {
+          console.error("비밀번호 재설정 오류:", error.code);
+          showMessage(
+            "resetMessage",
+            "요청을 처리하지 못했습니다. 이메일 형식을 확인하거나 잠시 후 다시 시도해 주세요.",
+            true
+          );
+        } finally {
+          button.disabled = false;
+        }
+      }
+    );
+
+    $("logoutBtn").addEventListener(
+      "click",
+      async () => {
+        await signOut(auth);
+      }
+    );
+  </script>
+</body>
+</html>
