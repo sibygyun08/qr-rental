@@ -3,12 +3,11 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>QRental | 관리자 대시보드</title>
   <link rel="stylesheet" href="style.css">
-
   <style>
+    [hidden] { display: none !important; }
     .auth-screen {
       min-height: 100vh;
       display: grid;
@@ -17,7 +16,6 @@
       background: var(--bg);
       text-align: center;
     }
-
     .auth-box {
       width: 100%;
       max-width: 440px;
@@ -26,42 +24,60 @@
       background: var(--panel);
       border: 1px solid var(--border);
     }
-
-    .auth-box h2 {
-      margin: 14px 0;
-    }
-
-    .auth-box p {
-      color: var(--muted);
-    }
-
-    .auth-box .button {
-      margin-top: 16px;
-    }
-
+    .auth-box h2 { margin: 14px 0; }
+    .auth-box p { color: var(--muted); }
+    .auth-box .button { margin-top: 16px; }
     .logout-button {
       background: #425773;
       color: white;
       border: 1px solid var(--border);
       border-radius: 10px;
       padding: 10px 16px;
-      font-weight: 700;
+      font-weight: bold;
       cursor: pointer;
     }
-
-    .logout-button:hover {
-      background: #536b8c;
+    .qr-manage-panel {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 18px;
+      padding: 22px;
+      margin: 18px 0 24px;
+      background: #303d4d;
+      border: 1px solid #485667;
+      border-radius: 16px;
     }
-
-    [hidden] {
-      display: none !important;
+    .qr-manage-panel h2 {
+      margin: 0 0 8px;
+      color: white;
     }
+    .qr-manage-panel p {
+      margin: 0;
+      color: #c4d5e7;
+      line-height: 1.6;
+    }
+    .qr-manage-link {
+      display: inline-block;
+      padding: 13px 18px;
+      background: #86b7f2;
+      color: #15263a !important;
+      border-radius: 10px;
+      font-weight: bold;
+      text-decoration: none;
+    }
+    .employee-guide {
+      padding: 18px;
+      background: #273647;
+      border: 1px solid #485667;
+      border-radius: 12px;
+      line-height: 1.7;
+    }
+    .employee-guide a { color: #a8ceff; }
   </style>
 </head>
 
 <body class="admin-page">
-
-  <!-- 로그인 확인 중 -->
   <section id="authScreen" class="auth-screen">
     <div class="auth-box">
       <span class="brand-icon">Q</span>
@@ -75,15 +91,11 @@
     </div>
   </section>
 
-  <!-- 관리자 확인 후에만 표시 -->
   <div id="adminApp" class="app-layout" hidden>
-
     <aside class="sidebar">
       <a class="logo" href="admin.html">
         <span class="logo-icon">Q</span>
-        <span>
-          QRental<span class="logo-dot">.</span>
-        </span>
+        <span>QRental<span class="logo-dot">.</span></span>
       </a>
 
       <div class="sidebar-label">WORKSPACE</div>
@@ -97,6 +109,9 @@
         </a>
         <a href="#register">
           ⊞ &nbsp; 물품 등록
+        </a>
+        <a href="qr-codes.html">
+          ▦ &nbsp; QR코드 관리
         </a>
         <a href="#members">
           ♙ &nbsp; 사용자 관리
@@ -112,7 +127,6 @@
           ADMIN SESSION
           <p>Firebase 관리자 로그인</p>
         </div>
-
         <a class="side-link" href="index.html">
           ↗ 사용자 화면 열기
         </a>
@@ -120,18 +134,14 @@
     </aside>
 
     <main class="dashboard-content">
-
       <header class="dashboard-topbar">
         <div>
-          <span class="eyebrow">
-            EQUIPMENT MANAGEMENT
-          </span>
+          <span class="eyebrow">EQUIPMENT MANAGEMENT</span>
           <h1>관리자 대시보드</h1>
           <p class="subtext">
             물품 상태와 대여 기록을 한눈에 확인하세요.
           </p>
         </div>
-
         <button id="logoutBtn"
                 class="logout-button"
                 type="button">
@@ -139,13 +149,23 @@
         </button>
       </header>
 
+      <section class="qr-manage-panel">
+        <div>
+          <h2>📱 물품 QR코드 관리</h2>
+          <p>
+            물품별 QR코드를 자동 생성하고
+            한 번에 출력할 수 있어요.
+          </p>
+        </div>
+        <a href="qr-codes.html" class="qr-manage-link">
+          QR코드 관리 및 출력 ↗
+        </a>
+      </section>
+
       <section class="hero dashboard-hero" id="overview">
         <div>
           <span class="eyebrow light">OVERVIEW</span>
-          <h2>
-            모든 물품 현황을<br>
-            한눈에 관리하세요.
-          </h2>
+          <h2>모든 물품 현황을<br>한눈에 관리하세요.</h2>
           <p>
             대여, 반납, 지연 현황을 한곳에서 확인합니다.
           </p>
@@ -186,79 +206,61 @@
         </article>
       </section>
 
-      <div class="columns" id="register">
-
-        <section class="panel">
-          <div class="section-title">
-            <div>
-              <span class="eyebrow">01 / INVENTORY</span>
-              <h2>새 물품 등록</h2>
-            </div>
-            <span class="section-symbol">⊞</span>
+      <section class="panel" id="register">
+        <div class="section-title">
+          <div>
+            <span class="eyebrow">01 / INVENTORY</span>
+            <h2>새 물품 등록</h2>
           </div>
+          <span class="section-symbol">⊞</span>
+        </div>
 
-          <p class="hint">
-            QR코드는 물품이 확정된 뒤 추가할 수 있어요.
-          </p>
+        <p class="hint">
+          물품을 등록하면 QR코드 관리 화면에
+          QR코드가 자동으로 생성돼요.
+        </p>
 
-          <form id="itemForm" class="form-grid">
-            <label>
-              물품 이름
-              <input id="itemName" type="text"
-                     maxlength="80" required
-                     placeholder="예: 노트북 A">
-            </label>
+        <form id="itemForm" class="form-grid">
+          <label>
+            물품 이름
+            <input id="itemName" type="text"
+                   maxlength="80" required
+                   placeholder="예: 노트북 A">
+          </label>
+          <label>
+            물품 설명
+            <input id="itemDescription" type="text"
+                   maxlength="150"
+                   placeholder="예: 공용 업무용 노트북">
+          </label>
+          <button class="button primary" type="submit">
+            + 물품 추가하기
+          </button>
+        </form>
+      </section>
 
-            <label>
-              물품 설명
-              <input id="itemDescription" type="text"
-                     maxlength="150"
-                     placeholder="예: 공용 업무용 노트북">
-            </label>
-
-            <button class="button primary" type="submit">
-              + 물품 추가하기
-            </button>
-          </form>
-        </section>
-
-        <section class="panel">
-          <div class="section-title">
-            <div>
-              <span class="eyebrow">02 / MEMBERS</span>
-              <h2>사용자 등록</h2>
-            </div>
-            <span class="section-symbol">♙</span>
+      <section class="panel">
+        <div class="section-title">
+          <div>
+            <span class="eyebrow">02 / MEMBERS</span>
+            <h2>직원 계정 관리 안내</h2>
           </div>
+          <span class="section-symbol">♙</span>
+        </div>
 
-          <p class="hint">
-            가상 사용자와 연습용 PIN만 등록하세요.
+        <div class="employee-guide">
+          직원은 QRental 사용자 화면에서
+          이메일과 비밀번호로 직접 가입해요.
+          <p>
+            관리자는 아래 <strong>등록된 사용자</strong>
+            목록에서 가입 승인, 이용 중지,
+            재활성화를 처리할 수 있어요.
           </p>
-
-          <form id="userForm" class="form-grid">
-            <label>
-              사용자 이름
-              <input id="newUserName" type="text"
-                     maxlength="40" required
-                     placeholder="예: 홍길동">
-            </label>
-
-            <label>
-              4자리 PIN
-              <input id="newUserPin" type="password"
-                     inputmode="numeric"
-                     pattern="[0-9]{4}"
-                     minlength="4" maxlength="4"
-                     autocomplete="off" required
-                     placeholder="숫자 4자리">
-            </label>
-
-            <button class="button primary" type="submit">
-              + 사용자 추가하기
-            </button>
-          </form>
-        </section>
-      </div>
+          <a href="index.html">
+            직원 가입 화면 열기 ↗
+          </a>
+        </div>
+      </section>
 
       <section class="panel" id="inventory">
         <div class="section-title">
@@ -289,7 +291,6 @@
             <tbody id="adminItems"></tbody>
           </table>
         </div>
-
         <p class="empty" id="adminEmptyMessage" hidden>
           아직 등록된 물품이 없습니다.
         </p>
@@ -319,7 +320,6 @@
             <tbody id="historyTable"></tbody>
           </table>
         </div>
-
         <p class="empty" id="historyEmpty" hidden>
           아직 대여 기록이 없습니다.
         </p>
@@ -350,15 +350,15 @@
          role="status" aria-live="polite"></p>
 
       <footer>
-        QRental Demo · 현재 물품 및 PIN 데이터는
-        브라우저에 저장됩니다.
-        실제 직원 정보는 입력하지 마세요.
+        QRental · Firebase 기반 물품 관리 시스템
+        <p>
+          실제 직원 정보 등록 전 개인정보 보호와
+          데이터 백업 정책을 확인해 주세요.
+        </p>
       </footer>
-
     </main>
   </div>
 
-  <!-- Firebase 관리자 인증 확인 -->
   <script type="module">
     import { auth, db } from "./firebase-config.js";
 
@@ -374,17 +374,15 @@
 
     const authScreen =
       document.getElementById("authScreen");
-
     const adminApp =
       document.getElementById("adminApp");
-
     const authTitle =
       document.getElementById("authTitle");
-
     const authMessage =
       document.getElementById("authMessage");
 
     let adminScriptLoaded = false;
+    let authGeneration = 0;
 
     function showBlocked(title, message) {
       adminApp.hidden = true;
@@ -397,33 +395,32 @@
       authScreen.hidden = true;
       adminApp.hidden = false;
 
-      // 인증 및 관리자 권한 확인 이후에만
-      // 기존 관리자 기능을 실행
-      if (!adminScriptLoaded) {
-        adminScriptLoaded = true;
+      if (adminScriptLoaded) return;
+      adminScriptLoaded = true;
 
-        const script = document.createElement("script");
-       script.src = "admin.js?v=20261031";
+      const script = document.createElement("script");
+      script.src = "admin.js?v=20261031-pin-cleanup";
 
-        script.onerror = () => {
-          showBlocked(
-            "관리자 기능 로드 실패",
-            "admin.js 파일을 확인해 주세요."
-          );
-        };
+      script.onerror = () => {
+        showBlocked(
+          "관리자 기능 로드 실패",
+          "admin.js 파일을 확인해 주세요."
+        );
+      };
 
-        document.body.appendChild(script);
-      }
+      document.body.appendChild(script);
     }
 
     document.getElementById("logoutBtn")
       .addEventListener("click", async () => {
         adminApp.hidden = true;
         await signOut(auth);
-        window.location.replace("login.html");
+        location.replace("login.html");
       });
 
-    onAuthStateChanged(auth, async (user) => {
+    onAuthStateChanged(auth, async user => {
+      const generation = ++authGeneration;
+
       if (!user) {
         showBlocked(
           "로그인이 필요합니다",
@@ -433,8 +430,11 @@
       }
 
       try {
-        const adminRef = doc(db, "admins", user.uid);
-        const snapshot = await getDoc(adminRef);
+        const snapshot = await getDoc(
+          doc(db, "admins", user.uid)
+        );
+
+        if (generation !== authGeneration) return;
 
         if (
           snapshot.exists() &&
@@ -444,18 +444,19 @@
         } else {
           showBlocked(
             "관리자 권한이 없습니다",
-            "이 계정은 관리자 계정으로 등록되지 않았습니다."
+            "관리자 계정으로 등록되지 않았습니다."
           );
         }
       } catch (error) {
-        console.error("관리자 권한 확인 오류:", error.code);
+        if (generation !== authGeneration) return;
+
+        console.error("관리자 권한 오류:", error);
         showBlocked(
           "권한 확인 실패",
-          "Firebase 연결과 Firestore 규칙을 확인해 주세요."
+          "Firebase 연결 상태를 확인해 주세요."
         );
       }
     });
   </script>
-
 </body>
 </html>
