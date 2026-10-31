@@ -5,138 +5,173 @@
   <meta charset="UTF-8">
   <meta name="viewport"
         content="width=device-width, initial-scale=1">
-
-  <title>QRental | QR코드 관리</title>
+  <title>QRental | QR코드 자동 생성</title>
   <link rel="stylesheet" href="style.css">
 
   <style>
-    body {
-      background: #202936;
-      color: #f4f7fb;
-      font-family: Arial, sans-serif;
-      margin: 0;
+    * {
+      box-sizing: border-box;
     }
 
     [hidden] {
       display: none !important;
     }
 
-    .qr-container {
+    body {
+      margin: 0;
+      background: #202936;
+      color: #f4f7fb;
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
       max-width: 1100px;
       margin: 0 auto;
-      padding: 32px 20px;
+      padding: 28px 18px;
     }
 
-    .qr-header {
+    .header {
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      gap: 16px;
+      align-items: center;
       flex-wrap: wrap;
-      margin-bottom: 30px;
-    }
-
-    .qr-panel {
-      background: #303d4d;
-      border: 1px solid #485667;
-      border-radius: 18px;
-      padding: 24px;
+      gap: 15px;
       margin-bottom: 25px;
     }
 
-    .qr-panel h1,
-    .qr-panel h2 {
+    .panel {
+      background: #303d4d;
+      padding: 24px;
+      border: 1px solid #485667;
+      border-radius: 18px;
+      margin-bottom: 20px;
+    }
+
+    h1, h2 {
       margin-top: 0;
     }
 
-    .qr-help {
-      color: #becfe0;
-      line-height: 1.7;
+    p {
+      line-height: 1.6;
+    }
+
+    .muted {
+      color: #bfd1e2;
       font-size: 14px;
     }
 
-    .qr-input {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 13px;
-      border-radius: 10px;
-      border: 1px solid #62748a;
+    a {
+      color: #a8ceff;
+    }
+
+    input, select {
+      padding: 12px;
       background: #1e2937;
       color: white;
+      border: 1px solid #70829a;
+      border-radius: 10px;
       font-size: 14px;
-      margin: 12px 0;
+      max-width: 100%;
     }
 
-    .qr-button {
+    input {
+      flex: 1;
+      min-width: 160px;
+    }
+
+    button {
+      border: 0;
       background: #86b7f2;
-      color: #15263a;
-      border: none;
+      color: #14253a;
+      padding: 12px 16px;
       border-radius: 10px;
-      padding: 12px 18px;
       font-weight: bold;
       cursor: pointer;
     }
 
-    .qr-button:disabled {
-      opacity: .5;
+    button:disabled {
+      opacity: 0.5;
       cursor: not-allowed;
     }
 
-    .qr-link {
-      color: #a9ccfa;
-      text-decoration: none;
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
     }
 
     .qr-grid {
       display: grid;
       grid-template-columns:
-        repeat(auto-fit, minmax(230px, 1fr));
-      gap: 18px;
+        repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
     }
 
     .qr-card {
       background: white;
-      color: #172536;
-      border-radius: 18px;
-      padding: 22px;
+      color: #182637;
+      border-radius: 15px;
+      padding: 20px;
       text-align: center;
       break-inside: avoid;
+      page-break-inside: avoid;
       overflow-wrap: anywhere;
     }
 
     .qr-card h3 {
-      margin: 0 0 6px;
-      font-size: 19px;
+      font-size: 18px;
+      margin: 0 0 8px;
     }
 
     .qr-card p {
-      color: #66768a;
+      color: #53667b;
       font-size: 12px;
+      margin: 7px 0;
     }
 
     .qr-image {
       display: flex;
       justify-content: center;
-      padding: 14px 0;
+      align-items: center;
+      min-height: 175px;
+      margin: 12px 0;
     }
 
     .qr-image img,
     .qr-image canvas {
       max-width: 100%;
+      height: auto;
     }
 
-    .qr-status {
-      font-size: 13px;
+    .status {
       font-weight: bold;
-      margin-top: 8px;
+      font-size: 13px;
     }
 
-    .qr-error {
-      color: #ffb8b8;
-      line-height: 1.6;
+    .error {
+      color: #ffb5b5;
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 22px 0;
+    }
+
+    .print-title {
+      display: none;
     }
 
     @media print {
+      @page {
+        size: A4;
+        margin: 12mm;
+      }
+
       body {
         background: white;
         color: black;
@@ -146,107 +181,134 @@
         display: none !important;
       }
 
-      .qr-container {
+      .container {
         max-width: none;
         padding: 0;
       }
 
+      .print-title {
+        display: block;
+        text-align: center;
+        margin: 0 0 15px;
+        font-size: 20px;
+      }
+
       .qr-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 12px;
+        grid-template-columns:
+          repeat(3, minmax(0, 1fr));
+        gap: 10px;
       }
 
       .qr-card {
-        border: 1px solid #aaa;
-        border-radius: 4px;
+        border: 1px solid #999;
+        border-radius: 5px;
+        padding: 10px;
+      }
+
+      .qr-card h3 {
+        font-size: 15px;
+      }
+
+      .qr-image {
+        min-height: 150px;
+        margin: 6px 0;
+      }
+
+      .qr-image canvas,
+      .qr-image img {
+        width: 150px;
+        height: 150px;
       }
     }
   </style>
 </head>
 
 <body>
-  <main class="qr-container">
+  <main class="container">
 
-    <header class="qr-header no-print">
+    <header class="header no-print">
       <div>
-        <span style="color:#86b7f2">
+        <p style="color:#86b7f2">
           QRENTAL / ADMIN
-        </span>
-        <h1>물품별 QR코드 관리</h1>
+        </p>
+        <h1>물품별 QR코드 자동 생성</h1>
       </div>
 
-      <a href="admin.html" class="qr-link">
+      <a href="admin.html">
         ← 관리자 화면으로
       </a>
     </header>
 
-    <section id="authPanel"
-             class="qr-panel no-print">
+    <section id="authPanel" class="panel no-print">
       <h2>관리자 권한 확인 중...</h2>
-      <p class="qr-help">
-        Firebase 로그인 상태를 확인하고 있어요.
+      <p class="muted">
+        Firebase 계정을 확인하고 있어요.
       </p>
     </section>
 
     <div id="qrApp" hidden>
 
-      <section class="qr-panel no-print">
-        <h2>QR코드에 사용할 웹사이트 주소</h2>
+      <section class="panel no-print">
+        <h2>QR코드 자동 생성 완료</h2>
 
-        <p class="qr-help">
-          휴대폰으로 스캔하려면 인터넷에서
-          접속 가능한 QRental 사용자 주소가 필요해요.
-          localhost 주소는 다른 휴대폰에서 열리지 않습니다.
+        <p class="muted">
+          등록된 물품의 QR코드를 자동으로 만들어요.
+          주소를 직접 입력할 필요가 없습니다.
         </p>
 
-        <label for="siteUrl">
-          QRental 사용자 웹사이트 주소
-        </label>
+        <p id="itemCount">
+          물품 목록을 불러오는 중...
+        </p>
 
-        <input
-          class="qr-input"
-          id="siteUrl"
-          type="url"
-          placeholder="https://example.com/qr-rental/index.html"
-        >
+        <div class="controls">
+          <input
+            id="searchInput"
+            type="search"
+            placeholder="물품 이름 검색"
+            aria-label="물품 이름 검색"
+          >
 
-        <button id="generateButton"
-                class="qr-button"
-                type="button">
-          QR코드 만들기
-        </button>
+          <select id="pageSize"
+                  aria-label="한 페이지 표시 개수">
+            <option value="12">12개씩 보기</option>
+            <option value="24">24개씩 보기</option>
+            <option value="48">48개씩 보기</option>
+          </select>
 
-        <button id="printButton"
-                class="qr-button"
-                type="button"
-                hidden>
-          QR코드 인쇄하기
-        </button>
+          <button id="printButton" type="button">
+            🖨️ 현재 페이지 QR코드 인쇄
+          </button>
+        </div>
 
-        <p id="qrMessage" class="qr-help"
+        <p id="qrMessage" class="muted"
            role="status"></p>
       </section>
 
-      <section id="printArea">
-        <div class="qr-panel no-print">
-          <h2>등록된 물품</h2>
-          <p id="itemCount" class="qr-help">
-            물품 목록을 불러오는 중...
-          </p>
-        </div>
+      <h2 class="print-title">
+        QRental 물품 QR코드
+      </h2>
 
-        <div id="qrGrid" class="qr-grid"></div>
-      </section>
+      <section id="qrGrid" class="qr-grid"></section>
+
+      <div class="pagination no-print">
+        <button id="prevButton" type="button">
+          이전
+        </button>
+
+        <span id="pageText">1 / 1</span>
+
+        <button id="nextButton" type="button">
+          다음
+        </button>
+      </div>
+
     </div>
   </main>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
   <script type="module">
-    import {
-      auth,
-      db
-    } from "./firebase-config.js";
+    import { auth, db } from "./firebase-config.js";
 
     import {
       onAuthStateChanged
@@ -261,145 +323,222 @@
 
     const $ = id => document.getElementById(id);
 
+    // QRental의 실제 인터넷 주소
+    // 127.0.0.1이나 localhost는 사용하지 않음
+    const SITE_URL =
+      "https://sibygyun08.github.io/qr-rental/index.html";
+
     let items = [];
+    let filteredItems = [];
     let verifiedAdmin = false;
     let unsubscribe = null;
-    let lastBaseUrl = "";
+    let authGeneration = 0;
+    let currentPage = 1;
+    let pageSize = 12;
 
-    function setMessage(text, error = false) {
-      $("qrMessage").textContent = text;
+    function setMessage(message, error = false) {
+      $("qrMessage").textContent = message;
       $("qrMessage").className =
-        error ? "qr-error" : "qr-help";
+        error ? "error" : "muted";
     }
 
-    function renderQRCodes(baseUrl) {
+    function showAuthMessage(title, message) {
+      const panel = $("authPanel");
+      panel.replaceChildren();
+
+      const h2 = document.createElement("h2");
+      h2.textContent = title;
+
+      const p = document.createElement("p");
+      p.textContent = message;
+
+      panel.append(h2, p);
+
+      if (title === "로그인이 필요합니다") {
+        const link = document.createElement("a");
+        link.href = "login.html";
+        link.textContent = "관리자 로그인 화면으로 이동";
+        panel.appendChild(link);
+      }
+
+      panel.hidden = false;
+    }
+
+    function makeCard(item) {
+      const card = document.createElement("article");
+      card.className = "qr-card";
+
+      const title = document.createElement("h3");
+      title.textContent = item.name || "이름 없는 물품";
+
+      const description = document.createElement("p");
+      description.textContent =
+        item.description || "QRental 공용 물품";
+
+      const qrBox = document.createElement("div");
+      qrBox.className = "qr-image";
+
+      const status = document.createElement("p");
+      status.className = "status";
+      status.textContent =
+        item.status === "rented"
+          ? "현재 대여 중"
+          : "대여 가능";
+
+      card.append(
+        title,
+        description,
+        qrBox,
+        status
+      );
+
+      const target = new URL(SITE_URL);
+      target.searchParams.set("item", item.id);
+
+      try {
+        new QRCode(qrBox, {
+          text: target.toString(),
+          width: 165,
+          height: 165,
+          colorDark: "#14253a",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      } catch (error) {
+        console.error("QR코드 생성 오류:", error);
+
+        const failure = document.createElement("p");
+        failure.textContent = "QR코드 생성 실패";
+        qrBox.replaceChildren(failure);
+      }
+
+      return card;
+    }
+
+    function render() {
+      if (!verifiedAdmin) return;
+
+      const keyword = $("searchInput")
+        .value.trim().toLowerCase();
+
+      filteredItems = items.filter(item =>
+        (item.name || "").toLowerCase().includes(keyword) ||
+        (item.description || "").toLowerCase().includes(keyword)
+      );
+
+      const totalPages = Math.max(
+        1,
+        Math.ceil(filteredItems.length / pageSize)
+      );
+
+      currentPage = Math.min(
+        Math.max(1, currentPage),
+        totalPages
+      );
+
+      const start = (currentPage - 1) * pageSize;
+
+      const visibleItems = filteredItems.slice(
+        start,
+        start + pageSize
+      );
+
       const grid = $("qrGrid");
       grid.replaceChildren();
 
       if (typeof QRCode === "undefined") {
         setMessage(
-          "QR코드 생성 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.",
+          "QR코드 라이브러리를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.",
           true
         );
+
+        $("printButton").disabled = true;
         return;
       }
 
-      for (const item of items) {
-        const target = new URL(baseUrl);
-        target.searchParams.set("item", item.id);
-
-        const card = document.createElement("article");
-        card.className = "qr-card";
-
-        const title = document.createElement("h3");
-        title.textContent = item.name || "이름 없는 물품";
-
-        const description = document.createElement("p");
-        description.textContent =
-          item.description || "QRental 공용 물품";
-
-        const qrBox = document.createElement("div");
-        qrBox.className = "qr-image";
-
-        const status = document.createElement("div");
-        status.className = "qr-status";
-        status.textContent =
-          item.status === "rented"
-            ? "현재 대여 중"
-            : "대여 가능";
-
-        card.append(
-          title,
-          description,
-          qrBox,
-          status
-        );
-
-        grid.appendChild(card);
-
-        try {
-          new QRCode(qrBox, {
-            text: target.toString(),
-            width: 180,
-            height: 180,
-            colorDark: "#14253a",
-            colorLight: "#ffffff",
-            correctLevel: QRCode.CorrectLevel.M
-          });
-        } catch (error) {
-          console.error("QR 생성 오류:", error);
-
-          const message = document.createElement("p");
-          message.textContent =
-            "이 물품의 QR코드를 만들지 못했습니다.";
-
-          qrBox.replaceChildren(message);
-        }
+      for (const item of visibleItems) {
+        grid.appendChild(makeCard(item));
       }
 
-      $("printButton").hidden = items.length === 0;
+      $("itemCount").textContent =
+        `전체 물품 ${items.length}개 / 검색 결과 ${filteredItems.length}개`;
+
+      $("pageText").textContent =
+        `${currentPage} / ${totalPages}`;
+
+      $("prevButton").disabled =
+        currentPage === 1;
+
+      $("nextButton").disabled =
+        currentPage === totalPages;
+
+      $("printButton").disabled =
+        visibleItems.length === 0;
 
       setMessage(
-        `${items.length}개 물품의 QR코드를 만들었습니다. 인쇄 전에 휴대폰에서 테스트해 주세요.`
+        visibleItems.length
+          ? `QR코드 ${visibleItems.length}개가 자동 생성됐어요. 인쇄하면 현재 페이지의 QR코드가 출력됩니다.`
+          : "표시할 물품이 없습니다."
       );
     }
 
-    $("generateButton").addEventListener(
+    $("searchInput").addEventListener(
+      "input",
+      () => {
+        currentPage = 1;
+        render();
+      }
+    );
+
+    $("pageSize").addEventListener(
+      "change",
+      () => {
+        pageSize = Number($("pageSize").value);
+        currentPage = 1;
+        render();
+      }
+    );
+
+    $("prevButton").addEventListener(
       "click",
       () => {
-        if (!verifiedAdmin) return;
-
-        const rawUrl = $("siteUrl").value.trim();
-
-        let target;
-
-        try {
-          target = new URL(rawUrl);
-        } catch {
-          setMessage(
-            "웹사이트 주소를 정확히 입력해 주세요.",
-            true
-          );
-          return;
+        if (currentPage > 1) {
+          currentPage--;
+          render();
+          window.scrollTo(0, 0);
         }
+      }
+    );
 
-        if (target.protocol !== "https:") {
-          setMessage(
-            "휴대폰에서 사용할 HTTPS 웹사이트 주소를 입력해 주세요. localhost 주소로 QR코드를 인쇄하면 안 됩니다.",
-            true
-          );
-          return;
+    $("nextButton").addEventListener(
+      "click",
+      () => {
+        const totalPages = Math.ceil(
+          filteredItems.length / pageSize
+        );
+
+        if (currentPage < totalPages) {
+          currentPage++;
+          render();
+          window.scrollTo(0, 0);
         }
-
-        if (
-          !target.pathname.endsWith("/") &&
-          !target.pathname.endsWith("/index.html")
-        ) {
-          setMessage(
-            "사용자 화면 주소는 / 또는 /index.html로 끝나야 해요.",
-            true
-          );
-          return;
-        }
-
-        // QR 주소에는 item만 넣음
-        target.search = "";
-        target.hash = "";
-
-        lastBaseUrl = target.toString();
-
-        renderQRCodes(lastBaseUrl);
       }
     );
 
     $("printButton").addEventListener(
       "click",
-      () => window.print()
+      () => {
+        if (!verifiedAdmin) return;
+        window.print();
+      }
     );
 
     onAuthStateChanged(auth, async user => {
+      const generation = ++authGeneration;
+
       verifiedAdmin = false;
-      lastBaseUrl = "";
+      items = [];
+
       $("qrApp").hidden = true;
       $("qrGrid").replaceChildren();
 
@@ -409,61 +548,81 @@
       }
 
       if (!user) {
-        $("authPanel").innerHTML =
-          '<h2>로그인이 필요합니다</h2>' +
-          '<a class="qr-link" href="login.html">' +
-          '관리자 로그인 화면으로 이동</a>';
+        showAuthMessage(
+          "로그인이 필요합니다",
+          "QR코드 생성은 관리자만 사용할 수 있어요."
+        );
         return;
       }
+
+      showAuthMessage(
+        "관리자 확인 중...",
+        "계정 권한을 확인하고 있어요."
+      );
 
       try {
         const adminDoc = await getDoc(
           doc(db, "admins", user.uid)
         );
 
+        if (generation !== authGeneration) return;
+
         if (
           !adminDoc.exists() ||
           adminDoc.data().role !== "admin"
         ) {
-          $("authPanel").textContent =
-            "관리자 권한이 없는 계정입니다.";
+          showAuthMessage(
+            "접근할 수 없습니다",
+            "관리자 권한이 없는 계정입니다."
+          );
           return;
         }
 
         verifiedAdmin = true;
+
         $("authPanel").hidden = true;
         $("qrApp").hidden = false;
 
         unsubscribe = onSnapshot(
           collection(db, "equipment"),
           snapshot => {
-            items = snapshot.docs.map(
-              itemDoc => ({
-                id: itemDoc.id,
-                ...itemDoc.data()
-              })
+            if (generation !== authGeneration) return;
+
+            items = snapshot.docs.map(itemDoc => ({
+              id: itemDoc.id,
+              ...itemDoc.data()
+            }));
+
+            items.sort(
+              (a, b) =>
+                (a.name || "").localeCompare(
+                  b.name || "",
+                  "ko"
+                )
             );
 
-            $("itemCount").textContent =
-              `등록된 물품 ${items.length}개`;
-
-            if (lastBaseUrl) {
-              renderQRCodes(lastBaseUrl);
-            }
+            render();
           },
           error => {
+            if (generation !== authGeneration) return;
+
             console.error("물품 조회 오류:", error);
             setMessage(
-              "물품 목록을 불러오지 못했습니다.",
+              "물품 목록을 불러오지 못했어요.",
               true
             );
           }
         );
 
       } catch (error) {
-        console.error("권한 확인 오류:", error);
-        $("authPanel").textContent =
-          "관리자 권한을 확인하지 못했습니다.";
+        if (generation !== authGeneration) return;
+
+        console.error("관리자 확인 오류:", error);
+
+        showAuthMessage(
+          "관리자 확인 실패",
+          "계정 권한을 확인하지 못했어요."
+        );
       }
     });
   </script>
