@@ -1,8 +1,6 @@
 
 (async function () {
-  const { auth, db } = await import(
-    "./firebase-config.js"
-  );
+  const { auth, db } = await import("./firebase-config.js");
 
   const { onAuthStateChanged } = await import(
     "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js"
@@ -47,7 +45,6 @@
 
   function personName(uid, email) {
     const profile = profiles.find(p => p.uid === uid);
-
     return profile
       ? `${profile.name} (${profile.email})`
       : email || uid || "-";
@@ -63,14 +60,15 @@
     ).length;
 
     const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, "0");
-    const dd = String(today.getDate()).padStart(2, "0");
-    const todayText = `${yyyy}-${mm}-${dd}`;
+    const todayText = [
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, "0"),
+      String(today.getDate()).padStart(2, "0")
+    ].join("-");
 
     const overdue = loans.filter(
       x => x.status === "active" &&
-        x.dueDate < todayText
+      x.dueDate < todayText
     ).length;
 
     $("totalCount").textContent = equipment.length;
@@ -114,13 +112,13 @@
         x => x.id === item.activeLoanId
       );
 
-      const name = cell(row, item.name);
+      const nameCell = cell(row, item.name);
 
       if (item.description) {
         const description = document.createElement("div");
         description.className = "hint";
         description.textContent = item.description;
-        name.appendChild(description);
+        nameCell.appendChild(description);
       }
 
       cell(
@@ -147,10 +145,7 @@
           : "-"
       );
 
-      cell(
-        row,
-        activeLoan ? activeLoan.dueDate : "-"
-      );
+      cell(row, activeLoan ? activeLoan.dueDate : "-");
 
       const action = document.createElement("td");
 
@@ -162,9 +157,7 @@
 
         button.onclick = async () => {
           if (!authenticated) return;
-          if (!confirm(item.name + "을(를) 삭제할까요?")) {
-            return;
-          }
+          if (!confirm(item.name + "을(를) 삭제할까요?")) return;
 
           button.disabled = true;
 
@@ -210,6 +203,7 @@
       );
 
       cell(row, item?.name || loan.itemId);
+
       cell(
         row,
         personName(
@@ -217,9 +211,11 @@
           loan.borrowerEmail
         )
       );
+
       cell(row, dateValue(loan.borrowedAt));
       cell(row, loan.dueDate);
       cell(row, dateValue(loan.returnedAt));
+
       cell(
         row,
         loan.status === "active"
@@ -231,77 +227,141 @@
     }
   }
 
-  // 가입 신청자 및 승인된 직원
+  // 직원 승인, 이용 중지, 재활성화
   function renderProfiles() {
     const table = $("userTable");
     table.replaceChildren();
 
-    const sorted = [...profiles].sort(
-      (a, b) => {
-        if (a.status === "pending" &&
-            b.status !== "pending") return -1;
+    const priority = {
+      pending: 0,
+      approved: 1,
+      blocked: 2
+    };
 
-        if (b.status === "pending" &&
-            a.status !== "pending") return 1;
+    const sorted = [...profiles].sort((a, b) => {
+      const pa = priority[a.status] ?? 3;
+      const pb = priority[b.status] ?? 3;
 
-        return a.name.localeCompare(b.name, "ko");
-      }
-    );
+      return pa - pb ||
+        (a.name || "").localeCompare(
+          b.name || "", "ko"
+        );
+    });
 
     for (const profile of sorted) {
       const row = document.createElement("tr");
 
       const nameCell = cell(row, profile.name);
+
       const email = document.createElement("div");
       email.className = "hint";
       email.textContent = profile.email;
       nameCell.appendChild(email);
 
       const statusCell = document.createElement("td");
+      const statusText = document.createElement("span");
 
-      if (profile.status === "approved") {
-        statusCell.textContent = "✅ 승인 완료";
-      } else {
-        const text = document.createElement("span");
-        text.textContent = "승인 대기 ";
-        statusCell.appendChild(text);
+      const button = document.createElement("button");
+      button.type = "button";
 
-        const button = document.createElement("button");
-        button.className = "button primary";
-        button.type = "button";
+      if (profile.status === "pending") {
+        statusText.textContent = "승인 대기 ";
         button.textContent = "승인하기";
+        button.className = "button primary";
 
-        button.onclick = async () => {
-          if (!authenticated) return;
+      } else if (profile.status === "approved") {
+        statusText.textContent = "✅ 이용 가능 ";
+        button.textContent = "이용 중지";
+        button.className = "button danger";
 
-          if (!confirm(
-            profile.name +
-            " (" + profile.email + ") 직원의 가입을 승인할까요?\n" +
-            "직원 본인인지 확인한 경우에만 승인해 주세요."
-          )) return;
+      } else if (profile.status === "blocked") {
+        statusText.textContent = "⛔ 이용 중지 ";
+        button.textContent = "재활성화";
+        button.className = "button primary";
 
-          button.disabled = true;
+      } else {
+        statusCell.textContent =
+          "알 수 없는 상태: " +
+          String(profile.status);
 
-          try {
-            await updateDoc(
-              doc(db, "profiles", profile.uid),
-              {
-                status: "approved",
-                approvedAt: serverTimestamp()
-              }
-            );
-
-            notice(profile.name + " 직원 승인 완료");
-          } catch (error) {
-            console.error(error);
-            notice("직원 승인 실패", true);
-            button.disabled = false;
-          }
-        };
-
-        statusCell.appendChild(button);
+        row.appendChild(statusCell);
+        table.appendChild(row);
+        continue;
       }
 
+      button.onclick = async () => {
+        if (!authenticated) return;
+
+        const activeCount = loans.filter(
+          loan =>
+            loan.borrowerUid === profile.uid &&
+            loan.status === "active"
+        ).length;
+
+        let message = "";
+        let changes = null;
+
+        if (profile.status === "pending") {
+          message =
+            profile.name +
+            " (" + profile.email + ") 직원의 가입을 승인할까요?\n" +
+            "직원 본인인지 확인한 경우에만 승인해 주세요.";
+
+          changes = {
+            status: "approved",
+            approvedAt: serverTimestamp()
+          };
+
+        } else if (profile.status === "approved") {
+          message =
+            profile.name +
+            " 직원의 QRental 이용을 중지할까요?\n" +
+            "중지하면 물품 조회와 대여가 차단됩니다.";
+
+          if (activeCount > 0) {
+            message +=
+              "\n\n주의: 현재 대여 중인 물품 " +
+              activeCount +
+              "건이 있습니다. 이용 중지 후에는 " +
+              "관리자가 물품 회수 및 반납을 처리해야 합니다.";
+          }
+
+          changes = { status: "blocked" };
+
+        } else {
+          message =
+            profile.name +
+            " 직원의 QRental 이용을 다시 허용할까요?\n" +
+            "이메일 인증도 완료되어 있어야 이용할 수 있습니다.";
+
+          changes = { status: "approved" };
+        }
+
+        if (!confirm(message)) return;
+
+        button.disabled = true;
+
+        try {
+          await updateDoc(
+            doc(db, "profiles", profile.uid),
+            changes
+          );
+
+          notice(profile.name + " 직원 상태 변경 완료");
+
+        } catch (error) {
+          console.error("직원 상태 변경 실패:", error);
+
+          notice(
+            "직원 상태 변경에 실패했습니다.",
+            true
+          );
+
+          button.disabled = false;
+        }
+      };
+
+      statusCell.append(statusText, button);
       row.appendChild(statusCell);
       table.appendChild(row);
     }
@@ -321,12 +381,19 @@
       if (!authenticated) return;
 
       const name = $("itemName").value.trim();
+
       const description =
         $("itemDescription").value.trim();
 
-      if (!name || name.length > 80 ||
-          description.length > 150) {
-        notice("물품 이름과 설명을 확인해 주세요.", true);
+      if (
+        !name ||
+        name.length > 80 ||
+        description.length > 150
+      ) {
+        notice(
+          "물품 이름과 설명을 확인해 주세요.",
+          true
+        );
         return;
       }
 
@@ -347,9 +414,11 @@
 
         event.target.reset();
         notice("물품이 Firebase에 등록됐어요!");
+
       } catch (error) {
         console.error(error);
         notice("물품 등록 실패", true);
+
       } finally {
         button.disabled = false;
       }
@@ -361,7 +430,7 @@
     renderEquipment
   );
 
-  // 이전 평문 PIN 등록은 사용하지 않음
+  // 예전 PIN 등록 기능 비활성화
   $("userForm").addEventListener(
     "submit",
     event => event.preventDefault()
@@ -412,8 +481,10 @@
 
       if (currentGeneration !== generation) return;
 
-      if (!snapshot.exists() ||
-          snapshot.data().role !== "admin") {
+      if (
+        !snapshot.exists() ||
+        snapshot.data().role !== "admin"
+      ) {
         notice("관리자 권한이 없습니다.", true);
         return;
       }
@@ -429,6 +500,7 @@
             id: d.id,
             ...d.data()
           }));
+
           refresh();
         },
         error => {
@@ -446,6 +518,7 @@
             id: d.id,
             ...d.data()
           }));
+
           refresh();
         },
         error => {
@@ -463,6 +536,7 @@
             id: d.id,
             ...d.data()
           }));
+
           refresh();
         },
         error => {
@@ -472,6 +546,7 @@
       );
 
       notice("QRental 관리자 데이터 연결 완료");
+
     } catch (error) {
       console.error(error);
       notice("관리자 권한 확인 실패", true);
