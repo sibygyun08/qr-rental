@@ -1,14 +1,22 @@
 
 (async function () {
-  const { auth, db } = await import("./firebase-config.js");
+  const { auth, db } = await import(
+    "./firebase-config.js"
+  );
 
   const { onAuthStateChanged } = await import(
     "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js"
   );
 
   const {
-    collection, doc, getDoc, addDoc, deleteDoc,
-    updateDoc, onSnapshot, serverTimestamp
+    collection,
+    doc,
+    getDoc,
+    addDoc,
+    deleteDoc,
+    updateDoc,
+    onSnapshot,
+    serverTimestamp
   } = await import(
     "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js"
   );
@@ -33,18 +41,23 @@
 
   function cell(row, value) {
     const td = document.createElement("td");
-    td.textContent = value == null ? "-" : String(value);
+    td.textContent =
+      value == null ? "-" : String(value);
     row.appendChild(td);
     return td;
   }
 
   function dateValue(timestamp) {
     if (!timestamp?.toDate) return "-";
-    return timestamp.toDate().toLocaleDateString("ko-KR");
+    return timestamp.toDate()
+      .toLocaleDateString("ko-KR");
   }
 
   function personName(uid, email) {
-    const profile = profiles.find(p => p.uid === uid);
+    const profile = profiles.find(
+      p => p.uid === uid
+    );
+
     return profile
       ? `${profile.name} (${profile.email})`
       : email || uid || "-";
@@ -52,23 +65,23 @@
 
   function renderCounts() {
     const available = equipment.filter(
-      x => x.status === "available"
+      item => item.status === "available"
     ).length;
 
     const rented = equipment.filter(
-      x => x.status === "rented"
+      item => item.status === "rented"
     ).length;
 
-    const today = new Date();
-    const todayText = [
-      today.getFullYear(),
-      String(today.getMonth() + 1).padStart(2, "0"),
-      String(today.getDate()).padStart(2, "0")
+    const d = new Date();
+    const today = [
+      d.getFullYear(),
+      String(d.getMonth() + 1).padStart(2, "0"),
+      String(d.getDate()).padStart(2, "0")
     ].join("-");
 
     const overdue = loans.filter(
-      x => x.status === "active" &&
-      x.dueDate < todayText
+      loan => loan.status === "active" &&
+              loan.dueDate < today
     ).length;
 
     $("totalCount").textContent = equipment.length;
@@ -77,6 +90,7 @@
     $("overdueCount").textContent = overdue;
   }
 
+  // 관리자 물품 목록
   function renderEquipment() {
     const table = $("adminItems");
     table.replaceChildren();
@@ -97,25 +111,29 @@
         : "";
 
       return (
-        (item.name || "").toLowerCase().includes(keyword) ||
-        (item.description || "").toLowerCase().includes(keyword) ||
+        (item.name || "")
+          .toLowerCase().includes(keyword) ||
+        (item.description || "")
+          .toLowerCase().includes(keyword) ||
         borrower.toLowerCase().includes(keyword)
       );
     });
 
-    $("adminEmptyMessage").hidden = filtered.length > 0;
+    $("adminEmptyMessage").hidden =
+      filtered.length > 0;
 
     for (const item of filtered) {
       const row = document.createElement("tr");
 
       const activeLoan = loans.find(
-        x => x.id === item.activeLoanId
+        loan => loan.id === item.activeLoanId
       );
 
       const nameCell = cell(row, item.name);
 
       if (item.description) {
-        const description = document.createElement("div");
+        const description =
+          document.createElement("div");
         description.className = "hint";
         description.textContent = item.description;
         nameCell.appendChild(description);
@@ -145,44 +163,60 @@
           : "-"
       );
 
-      cell(row, activeLoan ? activeLoan.dueDate : "-");
+      cell(
+        row,
+        activeLoan ? activeLoan.dueDate : "-"
+      );
 
-      const action = document.createElement("td");
+      const actionCell =
+        document.createElement("td");
 
       if (item.status === "available") {
-        const button = document.createElement("button");
+        const button =
+          document.createElement("button");
+
         button.type = "button";
-        button.textContent = "삭제";
         button.className = "button danger";
+        button.textContent = "삭제";
 
         button.onclick = async () => {
           if (!authenticated) return;
-          if (!confirm(item.name + "을(를) 삭제할까요?")) return;
+
+          if (!confirm(
+            item.name + "을(를) 삭제할까요?"
+          )) {
+            return;
+          }
 
           button.disabled = true;
 
           try {
-            await deleteDoc(doc(db, "equipment", item.id));
+            await deleteDoc(
+              doc(db, "equipment", item.id)
+            );
             notice("물품 삭제 완료");
           } catch (error) {
-            console.error(error);
+            console.error(
+              "물품 삭제 오류:", error
+            );
             notice("물품 삭제 실패", true);
             button.disabled = false;
           }
         };
 
-        action.appendChild(button);
+        actionCell.appendChild(button);
       } else {
-        action.textContent = "대여 중";
+        actionCell.textContent = "대여 중";
       }
 
-      row.appendChild(action);
+      row.appendChild(actionCell);
       table.appendChild(row);
     }
 
     renderCounts();
   }
 
+  // 전체 대여 기록
   function renderHistory() {
     const table = $("historyTable");
     table.replaceChildren();
@@ -193,13 +227,14 @@
         (a.borrowedAt?.seconds || 0)
     );
 
-    $("historyEmpty").hidden = sorted.length > 0;
+    $("historyEmpty").hidden =
+      sorted.length > 0;
 
     for (const loan of sorted) {
       const row = document.createElement("tr");
 
       const item = equipment.find(
-        x => x.id === loan.itemId
+        item => item.id === loan.itemId
       );
 
       cell(row, item?.name || loan.itemId);
@@ -227,7 +262,7 @@
     }
   }
 
-  // 직원 승인, 이용 중지, 재활성화
+  // 직원 승인, 이용 중지 및 재활성화
   function renderProfiles() {
     const table = $("userTable");
     table.replaceChildren();
@@ -238,30 +273,37 @@
       blocked: 2
     };
 
-    const sorted = [...profiles].sort((a, b) => {
-      const pa = priority[a.status] ?? 3;
-      const pb = priority[b.status] ?? 3;
+    const sorted = [...profiles].sort(
+      (a, b) => {
+        const pa = priority[a.status] ?? 3;
+        const pb = priority[b.status] ?? 3;
 
-      return pa - pb ||
-        (a.name || "").localeCompare(
-          b.name || "", "ko"
-        );
-    });
+        return pa - pb ||
+          (a.name || "").localeCompare(
+            b.name || "", "ko"
+          );
+      }
+    );
 
     for (const profile of sorted) {
       const row = document.createElement("tr");
-
       const nameCell = cell(row, profile.name);
 
-      const email = document.createElement("div");
+      const email =
+        document.createElement("div");
       email.className = "hint";
       email.textContent = profile.email;
       nameCell.appendChild(email);
 
-      const statusCell = document.createElement("td");
-      const statusText = document.createElement("span");
+      const statusCell =
+        document.createElement("td");
 
-      const button = document.createElement("button");
+      const statusText =
+        document.createElement("span");
+
+      const button =
+        document.createElement("button");
+
       button.type = "button";
 
       if (profile.status === "pending") {
@@ -304,8 +346,9 @@
         if (profile.status === "pending") {
           message =
             profile.name +
-            " (" + profile.email + ") 직원의 가입을 승인할까요?\n" +
-            "직원 본인인지 확인한 경우에만 승인해 주세요.";
+            " (" + profile.email + ")" +
+            " 직원의 가입을 승인할까요?\n" +
+            "직원 본인인지 확인한 후 승인해 주세요.";
 
           changes = {
             status: "approved",
@@ -316,25 +359,32 @@
           message =
             profile.name +
             " 직원의 QRental 이용을 중지할까요?\n" +
-            "중지하면 물품 조회와 대여가 차단됩니다.";
+            "물품 조회와 대여가 차단됩니다.";
 
           if (activeCount > 0) {
             message +=
-              "\n\n주의: 현재 대여 중인 물품 " +
+              "\n\n현재 대여 중인 물품 " +
               activeCount +
-              "건이 있습니다. 이용 중지 후에는 " +
-              "관리자가 물품 회수 및 반납을 처리해야 합니다.";
+              "건이 있습니다." +
+              "\n이용 중지 후에는 " +
+              "관리자가 물품 회수 및 " +
+              "반납을 처리해야 합니다.";
           }
 
-          changes = { status: "blocked" };
+          changes = {
+            status: "blocked"
+          };
 
         } else {
           message =
             profile.name +
-            " 직원의 QRental 이용을 다시 허용할까요?\n" +
-            "이메일 인증도 완료되어 있어야 이용할 수 있습니다.";
+            " 직원의 QRental 이용을 " +
+            "다시 허용할까요?\n" +
+            "이메일 인증도 완료되어야 합니다.";
 
-          changes = { status: "approved" };
+          changes = {
+            status: "approved"
+          };
         }
 
         if (!confirm(message)) return;
@@ -347,13 +397,17 @@
             changes
           );
 
-          notice(profile.name + " 직원 상태 변경 완료");
-
+          notice(
+            profile.name +
+            " 직원 상태 변경 완료"
+          );
         } catch (error) {
-          console.error("직원 상태 변경 실패:", error);
+          console.error(
+            "직원 상태 변경 오류:", error
+          );
 
           notice(
-            "직원 상태 변경에 실패했습니다.",
+            "직원 상태 변경 실패",
             true
           );
 
@@ -373,7 +427,7 @@
     renderProfiles();
   }
 
-  // 물품 등록
+  // 새 물품 등록
   $("itemForm").addEventListener(
     "submit",
     async event => {
@@ -381,7 +435,6 @@
       if (!authenticated) return;
 
       const name = $("itemName").value.trim();
-
       const description =
         $("itemDescription").value.trim();
 
@@ -404,21 +457,29 @@
       button.disabled = true;
 
       try {
-        await addDoc(collection(db, "equipment"), {
-          name,
-          description,
-          createdAt: serverTimestamp(),
-          status: "available",
-          activeLoanId: ""
-        });
+        await addDoc(
+          collection(db, "equipment"),
+          {
+            name,
+            description,
+            createdAt: serverTimestamp(),
+            status: "available",
+            activeLoanId: ""
+          }
+        );
 
         event.target.reset();
-        notice("물품이 Firebase에 등록됐어요!");
 
+        notice(
+          "물품 등록 완료! " +
+          "QR코드 관리 화면에서 확인할 수 있어요."
+        );
       } catch (error) {
-        console.error(error);
-        notice("물품 등록 실패", true);
+        console.error(
+          "물품 등록 오류:", error
+        );
 
+        notice("물품 등록 실패", true);
       } finally {
         button.disabled = false;
       }
@@ -430,26 +491,6 @@
     renderEquipment
   );
 
-  // 예전 PIN 등록 기능 비활성화
-  $("userForm").addEventListener(
-    "submit",
-    event => event.preventDefault()
-  );
-
-  $("userForm").querySelectorAll(
-    "input, button"
-  ).forEach(input => {
-    input.disabled = true;
-  });
-
-  const hint = document.createElement("p");
-  hint.className = "hint";
-  hint.textContent =
-    "이제 직원이 사용자 화면에서 직접 가입합니다. " +
-    "승인은 아래 등록된 사용자 목록에서 처리해 주세요.";
-
-  $("userForm").after(hint);
-
   function stopListeners() {
     if (unsubEquipment) unsubEquipment();
     if (unsubLoans) unsubLoans();
@@ -460,6 +501,7 @@
     unsubProfiles = null;
   }
 
+  // Firebase 관리자 계정 확인
   onAuthStateChanged(auth, async user => {
     generation++;
     const currentGeneration = generation;
@@ -470,6 +512,7 @@
     equipment = [];
     loans = [];
     profiles = [];
+
     refresh();
 
     if (!user) return;
@@ -479,13 +522,18 @@
         doc(db, "admins", user.uid)
       );
 
-      if (currentGeneration !== generation) return;
+      if (currentGeneration !== generation) {
+        return;
+      }
 
       if (
         !snapshot.exists() ||
         snapshot.data().role !== "admin"
       ) {
-        notice("관리자 권한이 없습니다.", true);
+        notice(
+          "관리자 권한이 없습니다.",
+          true
+        );
         return;
       }
 
@@ -494,65 +542,120 @@
       unsubEquipment = onSnapshot(
         collection(db, "equipment"),
         snapshot => {
-          if (currentGeneration !== generation) return;
+          if (
+            currentGeneration !== generation
+          ) return;
 
-          equipment = snapshot.docs.map(d => ({
-            id: d.id,
-            ...d.data()
-          }));
+          equipment = snapshot.docs.map(
+            itemDoc => ({
+              id: itemDoc.id,
+              ...itemDoc.data()
+            })
+          );
 
           refresh();
         },
         error => {
-          console.error("물품 조회 오류:", error);
-          notice("물품 목록 조회 실패", true);
+          if (
+            currentGeneration !== generation
+          ) return;
+
+          console.error(
+            "물품 조회 오류:", error
+          );
+
+          notice(
+            "물품 목록 조회 실패",
+            true
+          );
         }
       );
 
       unsubLoans = onSnapshot(
         collection(db, "loans"),
         snapshot => {
-          if (currentGeneration !== generation) return;
+          if (
+            currentGeneration !== generation
+          ) return;
 
-          loans = snapshot.docs.map(d => ({
-            id: d.id,
-            ...d.data()
-          }));
+          loans = snapshot.docs.map(
+            loanDoc => ({
+              id: loanDoc.id,
+              ...loanDoc.data()
+            })
+          );
 
           refresh();
         },
         error => {
-          console.error("대여 기록 오류:", error);
-          notice("대여 기록 조회 실패", true);
+          if (
+            currentGeneration !== generation
+          ) return;
+
+          console.error(
+            "대여 기록 조회 오류:", error
+          );
+
+          notice(
+            "대여 기록 조회 실패",
+            true
+          );
         }
       );
 
       unsubProfiles = onSnapshot(
         collection(db, "profiles"),
         snapshot => {
-          if (currentGeneration !== generation) return;
+          if (
+            currentGeneration !== generation
+          ) return;
 
-          profiles = snapshot.docs.map(d => ({
-            id: d.id,
-            ...d.data()
-          }));
+          profiles = snapshot.docs.map(
+            profileDoc => ({
+              id: profileDoc.id,
+              ...profileDoc.data()
+            })
+          );
 
           refresh();
         },
         error => {
-          console.error("직원 목록 오류:", error);
-          notice("가입 신청 목록 조회 실패", true);
+          if (
+            currentGeneration !== generation
+          ) return;
+
+          console.error(
+            "직원 목록 조회 오류:", error
+          );
+
+          notice(
+            "직원 목록 조회 실패",
+            true
+          );
         }
       );
 
-      notice("QRental 관리자 데이터 연결 완료");
-
+      notice(
+        "QRental 관리자 데이터 연결 완료"
+      );
     } catch (error) {
-      console.error(error);
-      notice("관리자 권한 확인 실패", true);
+      if (
+        currentGeneration !== generation
+      ) return;
+
+      console.error(
+        "관리자 권한 확인 오류:", error
+      );
+
+      notice(
+        "관리자 권한 확인 실패",
+        true
+      );
     }
   });
 
 })().catch(error => {
-  console.error("관리자 화면 초기화 실패:", error);
+  console.error(
+    "관리자 화면 초기화 실패:", error
+  );
 });
