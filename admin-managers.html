@@ -1,0 +1,531 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QRental | 관리자 권한 관리</title>
+  <style>
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+
+    body {
+      margin: 0;
+      background: #202936;
+      color: #f4f7fb;
+      font-family: Arial, sans-serif;
+    }
+
+    main {
+      max-width: 1050px;
+      margin: auto;
+      padding: 30px 18px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+
+    .panel {
+      background: #303d4d;
+      border: 1px solid #485667;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    h1 { margin: 8px 0; }
+    h2 { margin-top: 0; font-size: 21px; }
+    p { line-height: 1.6; }
+
+    .muted { color: #bfd1e2; }
+    a { color: #a8ceff; }
+
+    button, select {
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+
+    button {
+      background: #86b7f2;
+      border: 0;
+      color: #14253a;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    select {
+      background: #202936;
+      color: white;
+      border: 1px solid #70829a;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 15px;
+    }
+
+    .member {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      padding: 17px 0;
+      border-top: 1px solid #526071;
+    }
+
+    .member:first-child { border-top: 0; }
+
+    .member-name {
+      font-weight: bold;
+      overflow-wrap: anywhere;
+    }
+
+    .member-detail {
+      font-size: 13px;
+      color: #bfd1e2;
+      margin-top: 6px;
+      overflow-wrap: anywhere;
+    }
+
+    .protected {
+      color: #a4e8c7;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .danger {
+      background: #f0acac;
+      color: #4b1717;
+    }
+
+    .error { color: #ffc3c3; }
+    .success { color: #a4e8c7; }
+
+    #message {
+      min-height: 24px;
+      overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 600px) {
+      .member { align-items: flex-start; }
+      .panel { padding: 18px; }
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <header>
+      <div>
+        <p class="muted">QRENTAL / ADMIN</p>
+        <h1>관리자 권한 관리</h1>
+      </div>
+      <a href="admin.html">← 관리자 대시보드</a>
+    </header>
+
+    <section id="loadingPanel" class="panel">
+      <h2 id="loadingTitle">관리자 권한 확인 중...</h2>
+      <p id="loadingText" class="muted">
+        로그인 및 Firebase 권한을 확인하고 있어요.
+      </p>
+      <a href="login.html">관리자 로그인</a>
+    </section>
+
+    <div id="app" hidden>
+      <section class="panel">
+        <h2>👑 새 관리자 지정</h2>
+        <p class="muted">
+          관리자 승인을 완료한 직원에게만
+          관리자 권한을 부여할 수 있어요.
+          직원의 이름과 이메일을 확인한 뒤 진행해 주세요.
+        </p>
+
+        <label for="employeeSelect">
+          관리자로 지정할 직원
+        </label>
+
+        <div class="actions">
+          <select id="employeeSelect">
+            <option value="">직원을 선택해 주세요</option>
+          </select>
+
+          <button id="grantButton" type="button">
+            관리자 권한 부여
+          </button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>🛡️ 현재 관리자 목록</h2>
+        <p class="muted">
+          보호된 관리자는 삭제할 수 없어요.
+          본인의 관리자 권한도 직접 해제할 수 없어요.
+        </p>
+
+        <div id="adminList"></div>
+
+        <div class="actions">
+          <button id="refreshButton" type="button">
+            목록 새로고침
+          </button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>안전 안내</h2>
+        <p class="muted">
+          권한을 부여받은 직원은 기존 계정으로
+          관리자 화면에 접근할 수 있어요.
+          권한을 해제하면 관리 기능을 사용할 수 없어요.
+        </p>
+        <p class="muted">
+          기존 직원 계정과 과거 대여 기록은 삭제되지 않습니다.
+        </p>
+      </section>
+
+      <p id="message" role="status" aria-live="polite"></p>
+    </div>
+  </main>
+
+  <script type="module">
+    import { auth, db } from "./firebase-config.js";
+
+    import {
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js";
+
+    import {
+      collection,
+      doc,
+      getDoc,
+      getDocs,
+      setDoc,
+      deleteDoc
+    } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js";
+
+    const $ = id => document.getElementById(id);
+
+    let currentUid = null;
+    let admins = [];
+    let profiles = [];
+    let loading = false;
+    let authGeneration = 0;
+
+    function message(text, error = false) {
+      $("message").textContent = text;
+      $("message").className =
+        error ? "error" : "success";
+    }
+
+    function showDenied(title, description) {
+      $("app").hidden = true;
+      $("loadingPanel").hidden = false;
+      $("loadingTitle").textContent = title;
+      $("loadingText").textContent = description;
+    }
+
+    function displayPerson(uid) {
+      const profile = profiles.find(p => p.uid === uid);
+
+      return {
+        name: profile?.name || "관리자",
+        email: profile?.email || uid
+      };
+    }
+
+    function render() {
+      const select = $("employeeSelect");
+      select.replaceChildren();
+
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = "직원을 선택해 주세요";
+      select.appendChild(placeholder);
+
+      const adminIds = new Set(admins.map(a => a.id));
+
+      const eligible = profiles.filter(
+        p => p.status === "approved" &&
+             p.uid &&
+             !adminIds.has(p.uid)
+      ).sort(
+        (a, b) => (a.name || "").localeCompare(
+          b.name || "", "ko"
+        )
+      );
+
+      for (const person of eligible) {
+        const option = document.createElement("option");
+        option.value = person.uid;
+        option.textContent =
+          `${person.name} (${person.email})`;
+        select.appendChild(option);
+      }
+
+      const list = $("adminList");
+      list.replaceChildren();
+
+      if (admins.length === 0) {
+        const empty = document.createElement("p");
+        empty.textContent = "관리자가 없습니다.";
+        list.appendChild(empty);
+      }
+
+      for (const admin of admins) {
+        const person = displayPerson(admin.id);
+
+        const row = document.createElement("div");
+        row.className = "member";
+
+        const info = document.createElement("div");
+
+        const name = document.createElement("div");
+        name.className = "member-name";
+        name.textContent = person.name;
+
+        const detail = document.createElement("div");
+        detail.className = "member-detail";
+        detail.textContent = person.email;
+
+        info.append(name, detail);
+
+        const action = document.createElement("div");
+
+        if (admin.protected === true) {
+          const label = document.createElement("span");
+          label.className = "protected";
+          label.textContent = "🔒 보호 관리자";
+          action.appendChild(label);
+
+        } else if (admin.id === currentUid) {
+          const label = document.createElement("span");
+          label.textContent = "내 관리자 계정";
+          action.appendChild(label);
+
+        } else {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "danger";
+          button.textContent = "권한 해제";
+
+          button.onclick = () =>
+            revokeAdmin(admin.id, person, button);
+
+          action.appendChild(button);
+        }
+
+        row.append(info, action);
+        list.appendChild(row);
+      }
+
+      $("grantButton").disabled =
+        loading || eligible.length === 0;
+
+      $("refreshButton").disabled = loading;
+    }
+
+    async function refresh() {
+      if (!currentUid || loading) return;
+
+      loading = true;
+      render();
+
+      const requestedUid = currentUid;
+
+      try {
+        const [adminSnapshot, profileSnapshot] =
+          await Promise.all([
+            getDocs(collection(db, "admins")),
+            getDocs(collection(db, "profiles"))
+          ]);
+
+        if (requestedUid !== currentUid) return;
+
+        admins = adminSnapshot.docs.map(d => ({
+          id: d.id,
+          ...d.data()
+        }));
+
+        profiles = profileSnapshot.docs.map(d => ({
+          id: d.id,
+          ...d.data()
+        }));
+
+        message("관리자 목록을 불러왔어요.");
+
+      } catch (error) {
+        console.error("관리자 목록 조회 오류:", error);
+
+        message(
+          error.code === "permission-denied"
+            ? "관리자 목록 조회 권한이 없어요. " +
+              "현재 적용된 Firestore 규칙을 확인해 주세요."
+            : "목록을 불러오지 못했어요.",
+          true
+        );
+
+      } finally {
+        loading = false;
+        if (requestedUid === currentUid) render();
+      }
+    }
+
+    $("grantButton").onclick = async () => {
+      const uid = $("employeeSelect").value;
+
+      if (!uid || !currentUid || loading) return;
+
+      const person = profiles.find(
+        p => p.uid === uid && p.status === "approved"
+      );
+
+      if (!person || admins.some(a => a.id === uid)) {
+        message("직원 정보를 다시 확인해 주세요.", true);
+        return;
+      }
+
+      if (!confirm(
+        `${person.name} (${person.email}) 직원에게\n` +
+        "관리자 권한을 부여할까요?"
+      )) return;
+
+      loading = true;
+      render();
+
+      try {
+        await setDoc(doc(db, "admins", uid), {
+          role: "admin",
+          protected: false
+        });
+
+        message("관리자 권한을 부여했어요.");
+
+      } catch (error) {
+        console.error("권한 부여 실패:", error);
+        message(
+          "권한 부여에 실패했어요. " +
+          "Firestore 규칙과 직원 승인 상태를 확인해 주세요.",
+          true
+        );
+
+      } finally {
+        loading = false;
+        await refresh();
+      }
+    };
+
+    async function revokeAdmin(uid, person, button) {
+      if (!currentUid || loading || uid === currentUid) {
+        return;
+      }
+
+      const target = admins.find(a => a.id === uid);
+
+      if (!target || target.protected === true) return;
+
+      if (!confirm(
+        `${person.name} (${person.email})의\n` +
+        "관리자 권한을 해제할까요?\n" +
+        "직원 계정과 대여 기록은 유지됩니다."
+      )) return;
+
+      button.disabled = true;
+      loading = true;
+
+      try {
+        await deleteDoc(doc(db, "admins", uid));
+        message("관리자 권한을 해제했어요.");
+
+      } catch (error) {
+        console.error("권한 해제 실패:", error);
+        message(
+          "권한 해제에 실패했어요. " +
+          "보호 계정이나 권한 상태를 확인해 주세요.",
+          true
+        );
+
+      } finally {
+        loading = false;
+        await refresh();
+      }
+    }
+
+    $("refreshButton").onclick = refresh;
+
+    onAuthStateChanged(auth, async user => {
+      const generation = ++authGeneration;
+
+      currentUid = null;
+      admins = [];
+      profiles = [];
+
+      $("app").hidden = true;
+
+      if (!user) {
+        showDenied(
+          "로그인이 필요합니다",
+          "관리자 계정으로 먼저 로그인해 주세요."
+        );
+        return;
+      }
+
+      showDenied(
+        "관리자 권한 확인 중...",
+        "Firebase 관리자 권한을 확인하고 있어요."
+      );
+
+      try {
+        const snapshot = await getDoc(
+          doc(db, "admins", user.uid)
+        );
+
+        if (generation !== authGeneration) return;
+
+        if (
+          !snapshot.exists() ||
+          snapshot.data().role !== "admin"
+        ) {
+          showDenied(
+            "접근 권한이 없습니다",
+            "관리자 계정만 사용할 수 있는 화면이에요."
+          );
+          return;
+        }
+
+        currentUid = user.uid;
+        $("loadingPanel").hidden = true;
+        $("app").hidden = false;
+
+        await refresh();
+
+      } catch (error) {
+        if (generation !== authGeneration) return;
+
+        console.error("관리자 인증 오류:", error);
+
+        showDenied(
+          "관리자 확인 실패",
+          "Firebase 연결 또는 관리자 권한을 확인해 주세요."
+        );
+      }
+    });
+  </script>
+</body>
+</html>

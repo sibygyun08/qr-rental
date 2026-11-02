@@ -3,11 +3,18 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1">
+
   <title>QRental | 관리자 대시보드</title>
+
   <link rel="stylesheet" href="style.css">
+
   <style>
-    [hidden] { display: none !important; }
+    [hidden] {
+      display: none !important;
+    }
+
     .auth-screen {
       min-height: 100vh;
       display: grid;
@@ -16,6 +23,7 @@
       background: var(--bg);
       text-align: center;
     }
+
     .auth-box {
       width: 100%;
       max-width: 440px;
@@ -24,9 +32,19 @@
       background: var(--panel);
       border: 1px solid var(--border);
     }
-    .auth-box h2 { margin: 14px 0; }
-    .auth-box p { color: var(--muted); }
-    .auth-box .button { margin-top: 16px; }
+
+    .auth-box h2 {
+      margin: 14px 0;
+    }
+
+    .auth-box p {
+      color: var(--muted);
+    }
+
+    .auth-box .button {
+      margin-top: 16px;
+    }
+
     .logout-button {
       background: #425773;
       color: white;
@@ -36,6 +54,11 @@
       font-weight: bold;
       cursor: pointer;
     }
+
+    .logout-button:hover {
+      background: #536b8c;
+    }
+
     .qr-manage-panel {
       display: flex;
       align-items: center;
@@ -48,15 +71,18 @@
       border: 1px solid #485667;
       border-radius: 16px;
     }
+
     .qr-manage-panel h2 {
       margin: 0 0 8px;
       color: white;
     }
+
     .qr-manage-panel p {
       margin: 0;
       color: #c4d5e7;
       line-height: 1.6;
     }
+
     .qr-manage-link {
       display: inline-block;
       padding: 13px 18px;
@@ -66,6 +92,11 @@
       font-weight: bold;
       text-decoration: none;
     }
+
+    .qr-manage-link:hover {
+      background: #a8ceff;
+    }
+
     .employee-guide {
       padding: 18px;
       background: #273647;
@@ -73,110 +104,258 @@
       border-radius: 12px;
       line-height: 1.7;
     }
-    .employee-guide a { color: #a8ceff; }
+
+    .employee-guide a {
+      color: #a8ceff;
+    }
+
+    /* 새 관리자 권한 관리 안내 */
+    .manager-panel {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 18px;
+      padding: 22px;
+      margin: 0 0 24px;
+      background: #303d4d;
+      border: 1px solid #485667;
+      border-radius: 16px;
+    }
+
+    .manager-panel h2 {
+      margin: 0 0 8px;
+      color: white;
+    }
+
+    .manager-panel p {
+      margin: 0;
+      color: #c4d5e7;
+      line-height: 1.6;
+    }
+
+    .manager-link {
+      display: inline-block;
+      padding: 13px 18px;
+      background: #a8d9c5;
+      color: #173b30 !important;
+      border-radius: 10px;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    .manager-link:hover {
+      background: #c2ead8;
+    }
+
+    @media (max-width: 600px) {
+      .qr-manage-panel,
+      .manager-panel {
+        padding: 18px;
+      }
+
+      .qr-manage-link,
+      .manager-link {
+        width: 100%;
+        text-align: center;
+      }
+    }
   </style>
 </head>
 
 <body class="admin-page">
+
+  <!-- 관리자 로그인 및 권한 확인 화면 -->
   <section id="authScreen" class="auth-screen">
     <div class="auth-box">
+
       <span class="brand-icon">Q</span>
-      <h2 id="authTitle">관리자 계정 확인 중...</h2>
+
+      <h2 id="authTitle">
+        관리자 계정 확인 중...
+      </h2>
+
       <p id="authMessage">
-        Firebase 로그인과 관리자 권한을 확인하고 있어요.
+        Firebase 로그인과 관리자 권한을
+        확인하고 있어요.
       </p>
+
       <a href="login.html" class="button primary">
         로그인 화면으로 이동
       </a>
+
     </div>
   </section>
 
+  <!-- 관리자 권한이 확인되면 표시 -->
   <div id="adminApp" class="app-layout" hidden>
+
+    <!-- 왼쪽 관리자 메뉴 -->
     <aside class="sidebar">
+
       <a class="logo" href="admin.html">
         <span class="logo-icon">Q</span>
-        <span>QRental<span class="logo-dot">.</span></span>
+        <span>
+          QRental<span class="logo-dot">.</span>
+        </span>
       </a>
 
-      <div class="sidebar-label">WORKSPACE</div>
+      <div class="sidebar-label">
+        WORKSPACE
+      </div>
 
       <nav class="side-nav" aria-label="관리 메뉴">
+
         <a class="active" href="#overview">
           ▦ &nbsp; 대시보드
         </a>
+
         <a href="#inventory">
           ▤ &nbsp; 물품 현황
         </a>
+
         <a href="#register">
           ⊞ &nbsp; 물품 등록
         </a>
+
         <a href="qr-codes.html">
           ▦ &nbsp; QR코드 관리
         </a>
+
+        <!-- 새 관리자 권한 관리 메뉴 -->
+        <a href="admin-managers.html">
+          👑 &nbsp; 관리자 권한 관리
+        </a>
+
         <a href="#members">
           ♙ &nbsp; 사용자 관리
         </a>
+
         <a href="#history">
           ◷ &nbsp; 대여 기록
         </a>
+
       </nav>
 
       <div class="sidebar-bottom">
+
         <div class="sidebar-note">
           <span class="online-dot"></span>
           ADMIN SESSION
           <p>Firebase 관리자 로그인</p>
         </div>
+
         <a class="side-link" href="index.html">
           ↗ 사용자 화면 열기
         </a>
+
       </div>
     </aside>
 
+    <!-- 메인 대시보드 -->
     <main class="dashboard-content">
+
+      <!-- 상단 -->
       <header class="dashboard-topbar">
+
         <div>
-          <span class="eyebrow">EQUIPMENT MANAGEMENT</span>
+          <span class="eyebrow">
+            EQUIPMENT MANAGEMENT
+          </span>
+
           <h1>관리자 대시보드</h1>
+
           <p class="subtext">
-            물품 상태와 대여 기록을 한눈에 확인하세요.
+            물품 상태와 대여 기록을
+            한눈에 확인하세요.
           </p>
         </div>
-        <button id="logoutBtn"
-                class="logout-button"
-                type="button">
+
+        <button
+          id="logoutBtn"
+          class="logout-button"
+          type="button">
           로그아웃 ↗
         </button>
+
       </header>
 
+      <!-- QR코드 관리 -->
       <section class="qr-manage-panel">
+
         <div>
           <h2>📱 물품 QR코드 관리</h2>
+
           <p>
-            물품별 QR코드를 자동 생성하고
-            한 번에 출력할 수 있어요.
+            등록된 물품의 QR코드를 자동 생성하고
+            한 번에 인쇄할 수 있어요.
           </p>
         </div>
-        <a href="qr-codes.html" class="qr-manage-link">
+
+        <a href="qr-codes.html"
+           class="qr-manage-link">
           QR코드 관리 및 출력 ↗
         </a>
+
       </section>
 
-      <section class="hero dashboard-hero" id="overview">
+      <!-- 관리자 권한 관리 -->
+      <section class="manager-panel">
+
         <div>
-          <span class="eyebrow light">OVERVIEW</span>
-          <h2>모든 물품 현황을<br>한눈에 관리하세요.</h2>
+          <h2>👑 관리자 권한 관리</h2>
+
           <p>
-            대여, 반납, 지연 현황을 한곳에서 확인합니다.
+            승인된 직원에게 관리자 권한을 부여하거나
+            기존 관리자 권한을 해제하는 화면입니다.
           </p>
-          <a href="#inventory" class="button primary">
+        </div>
+
+        <a href="admin-managers.html"
+           class="manager-link">
+          관리자 권한 관리 화면 열기 ↗
+        </a>
+
+      </section>
+
+      <!-- 전체 현황 -->
+      <section
+        class="hero dashboard-hero"
+        id="overview">
+
+        <div>
+
+          <span class="eyebrow light">
+            OVERVIEW
+          </span>
+
+          <h2>
+            모든 물품 현황을<br>
+            한눈에 관리하세요.
+          </h2>
+
+          <p>
+            대여, 반납, 지연 현황을
+            한곳에서 확인합니다.
+          </p>
+
+          <a href="#inventory"
+             class="button primary">
             물품 현황 보기 ↗
           </a>
+
         </div>
-        <div class="hero-art" aria-hidden="true">▦</div>
+
+        <div class="hero-art"
+             aria-hidden="true">
+          ▦
+        </div>
+
       </section>
 
+      <!-- 물품 통계 -->
       <section class="stats">
+
         <article class="stat-card">
           <div class="stat-icon">▦</div>
           <span>전체 물품</span>
@@ -204,80 +383,116 @@
           <strong id="overdueCount">0</strong>
           <small>반납예정일 경과</small>
         </article>
+
       </section>
 
+      <!-- 물품 등록 -->
       <section class="panel" id="register">
+
         <div class="section-title">
           <div>
-            <span class="eyebrow">01 / INVENTORY</span>
+            <span class="eyebrow">
+              01 / INVENTORY
+            </span>
             <h2>새 물품 등록</h2>
           </div>
+
           <span class="section-symbol">⊞</span>
         </div>
 
         <p class="hint">
-          물품을 등록하면 QR코드 관리 화면에
-          QR코드가 자동으로 생성돼요.
+          물품을 등록하면 QR코드 관리 화면에서
+          QR코드가 자동으로 만들어집니다.
         </p>
 
         <form id="itemForm" class="form-grid">
+
           <label>
             물품 이름
-            <input id="itemName" type="text"
-                   maxlength="80" required
-                   placeholder="예: 노트북 A">
+            <input
+              id="itemName"
+              type="text"
+              maxlength="80"
+              required
+              placeholder="예: 노트북 A">
           </label>
+
           <label>
             물품 설명
-            <input id="itemDescription" type="text"
-                   maxlength="150"
-                   placeholder="예: 공용 업무용 노트북">
+            <input
+              id="itemDescription"
+              type="text"
+              maxlength="150"
+              placeholder="예: 공용 업무용 노트북">
           </label>
-          <button class="button primary" type="submit">
+
+          <button class="button primary"
+                  type="submit">
             + 물품 추가하기
           </button>
+
         </form>
+
       </section>
 
+      <!-- 직원 계정 관리 안내 -->
       <section class="panel">
+
         <div class="section-title">
           <div>
-            <span class="eyebrow">02 / MEMBERS</span>
+            <span class="eyebrow">
+              02 / MEMBERS
+            </span>
             <h2>직원 계정 관리 안내</h2>
           </div>
+
           <span class="section-symbol">♙</span>
         </div>
 
         <div class="employee-guide">
+
           직원은 QRental 사용자 화면에서
           이메일과 비밀번호로 직접 가입해요.
+
           <p>
-            관리자는 아래 <strong>등록된 사용자</strong>
+            관리자는 아래
+            <strong>등록된 사용자</strong>
             목록에서 가입 승인, 이용 중지,
             재활성화를 처리할 수 있어요.
           </p>
+
           <a href="index.html">
             직원 가입 화면 열기 ↗
           </a>
+
         </div>
+
       </section>
 
+      <!-- 전체 물품 목록 -->
       <section class="panel" id="inventory">
+
         <div class="section-title">
           <div>
-            <span class="eyebrow">03 / EQUIPMENT</span>
+            <span class="eyebrow">
+              03 / EQUIPMENT
+            </span>
             <h2>전체 물품 현황</h2>
           </div>
         </div>
 
         <label class="search-label">
           물품 또는 대여자 검색
-          <input id="searchInput" type="search"
-                 placeholder="물품명이나 대여자 이름 검색">
+
+          <input
+            id="searchInput"
+            type="search"
+            placeholder="물품명이나 대여자 이름 검색">
         </label>
 
         <div class="table-wrap">
           <table>
+
             <thead>
               <tr>
                 <th>물품명</th>
@@ -288,25 +503,40 @@
                 <th>관리</th>
               </tr>
             </thead>
+
             <tbody id="adminItems"></tbody>
+
           </table>
         </div>
-        <p class="empty" id="adminEmptyMessage" hidden>
+
+        <p
+          class="empty"
+          id="adminEmptyMessage"
+          hidden>
           아직 등록된 물품이 없습니다.
         </p>
+
       </section>
 
+      <!-- 대여 기록 -->
       <section class="panel" id="history">
+
         <div class="section-title">
+
           <div>
-            <span class="eyebrow">04 / ACTIVITY</span>
+            <span class="eyebrow">
+              04 / ACTIVITY
+            </span>
             <h2>대여·반납 기록</h2>
           </div>
+
           <span class="section-symbol">◷</span>
+
         </div>
 
         <div class="table-wrap">
           <table>
+
             <thead>
               <tr>
                 <th>물품</th>
@@ -317,50 +547,79 @@
                 <th>상태</th>
               </tr>
             </thead>
+
             <tbody id="historyTable"></tbody>
+
           </table>
         </div>
-        <p class="empty" id="historyEmpty" hidden>
+
+        <p
+          class="empty"
+          id="historyEmpty"
+          hidden>
           아직 대여 기록이 없습니다.
         </p>
+
       </section>
 
+      <!-- 직원 승인 및 상태 관리 -->
       <section class="panel" id="members">
+
         <div class="section-title">
+
           <div>
-            <span class="eyebrow">05 / USERS</span>
+            <span class="eyebrow">
+              05 / USERS
+            </span>
             <h2>등록된 사용자</h2>
           </div>
+
         </div>
 
         <div class="table-wrap">
           <table>
+
             <thead>
               <tr>
                 <th>이름</th>
                 <th>등록 상태</th>
               </tr>
             </thead>
+
             <tbody id="userTable"></tbody>
+
           </table>
         </div>
+
       </section>
 
-      <p id="adminNotice" class="notice"
-         role="status" aria-live="polite"></p>
+      <!-- 관리자 알림 -->
+      <p
+        id="adminNotice"
+        class="notice"
+        role="status"
+        aria-live="polite">
+      </p>
 
       <footer>
         QRental · Firebase 기반 물품 관리 시스템
+
         <p>
           실제 직원 정보 등록 전 개인정보 보호와
           데이터 백업 정책을 확인해 주세요.
         </p>
       </footer>
+
     </main>
   </div>
 
+  <!-- Firebase 관리자 인증 -->
   <script type="module">
-    import { auth, db } from "./firebase-config.js";
+
+    import {
+      auth,
+      db
+    } from "./firebase-config.js";
 
     import {
       onAuthStateChanged,
@@ -374,10 +633,13 @@
 
     const authScreen =
       document.getElementById("authScreen");
+
     const adminApp =
       document.getElementById("adminApp");
+
     const authTitle =
       document.getElementById("authTitle");
+
     const authMessage =
       document.getElementById("authMessage");
 
@@ -387,6 +649,7 @@
     function showBlocked(title, message) {
       adminApp.hidden = true;
       authScreen.hidden = false;
+
       authTitle.textContent = title;
       authMessage.textContent = message;
     }
@@ -396,10 +659,15 @@
       adminApp.hidden = false;
 
       if (adminScriptLoaded) return;
+
       adminScriptLoaded = true;
 
-      const script = document.createElement("script");
-      script.src = "admin.js?v=20261031-pin-cleanup";
+      const script =
+        document.createElement("script");
+
+      // 기존 관리자 기능 유지
+      // 관리자 대리 반납 기능 포함
+      script.src = "admin.js?v=20261102-manager-menu";
 
       script.onerror = () => {
         showBlocked(
@@ -412,51 +680,73 @@
     }
 
     document.getElementById("logoutBtn")
-      .addEventListener("click", async () => {
-        adminApp.hidden = true;
-        await signOut(auth);
-        location.replace("login.html");
-      });
+      .addEventListener(
+        "click",
+        async () => {
+          adminApp.hidden = true;
 
-    onAuthStateChanged(auth, async user => {
-      const generation = ++authGeneration;
+          await signOut(auth);
 
-      if (!user) {
-        showBlocked(
-          "로그인이 필요합니다",
-          "관리자 계정으로 로그인해 주세요."
-        );
-        return;
-      }
-
-      try {
-        const snapshot = await getDoc(
-          doc(db, "admins", user.uid)
-        );
-
-        if (generation !== authGeneration) return;
-
-        if (
-          snapshot.exists() &&
-          snapshot.data().role === "admin"
-        ) {
-          loadAdminDashboard();
-        } else {
-          showBlocked(
-            "관리자 권한이 없습니다",
-            "관리자 계정으로 등록되지 않았습니다."
+          window.location.replace(
+            "login.html"
           );
         }
-      } catch (error) {
-        if (generation !== authGeneration) return;
+      );
 
-        console.error("관리자 권한 오류:", error);
-        showBlocked(
-          "권한 확인 실패",
-          "Firebase 연결 상태를 확인해 주세요."
-        );
+    onAuthStateChanged(
+      auth,
+      async user => {
+        const generation = ++authGeneration;
+
+        if (!user) {
+          showBlocked(
+            "로그인이 필요합니다",
+            "관리자 계정으로 로그인해 주세요."
+          );
+          return;
+        }
+
+        try {
+          const snapshot = await getDoc(
+            doc(db, "admins", user.uid)
+          );
+
+          if (generation !== authGeneration) {
+            return;
+          }
+
+          if (
+            snapshot.exists() &&
+            snapshot.data().role === "admin"
+          ) {
+            loadAdminDashboard();
+
+          } else {
+            showBlocked(
+              "관리자 권한이 없습니다",
+              "관리자 계정으로 등록되지 않았습니다."
+            );
+          }
+
+        } catch (error) {
+          if (generation !== authGeneration) {
+            return;
+          }
+
+          console.error(
+            "관리자 권한 확인 오류:",
+            error
+          );
+
+          showBlocked(
+            "권한 확인 실패",
+            "Firebase 연결 상태를 확인해 주세요."
+          );
+        }
       }
-    });
+    );
+
   </script>
+
 </body>
 </html>
