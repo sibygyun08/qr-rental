@@ -22,20 +22,38 @@
 
   const $ = id => document.getElementById(id);
 
+  // ========================================
+  // QRental 물품 카테고리 설정
+  // ========================================
+
+  const CATEGORIES = [
+    "노트북",
+    "태블릿",
+    "촬영 장비",
+    "주변기기",
+    "기타"
+  ];
+
   let equipment = [];
   let loans = [];
   let profiles = [];
+
   let authenticated = false;
   let adminUid = null;
 
   let unsubEquipment = null;
   let unsubLoans = null;
   let unsubProfiles = null;
+
   let generation = 0;
 
   let equipmentLoaded = false;
   let loansLoaded = false;
   let profilesLoaded = false;
+
+  // ========================================
+  // 공통 함수
+  // ========================================
 
   function notice(message, error = false) {
     $("adminNotice").textContent = message;
@@ -45,23 +63,80 @@
 
   function cell(row, value) {
     const td = document.createElement("td");
-    td.textContent = value == null ? "-" : String(value);
+    td.textContent =
+      value == null ? "-" : String(value);
+
     row.appendChild(td);
     return td;
   }
 
   function dateValue(timestamp) {
     if (!timestamp?.toDate) return "-";
-    return timestamp.toDate().toLocaleDateString("ko-KR");
+
+    return timestamp.toDate()
+      .toLocaleDateString("ko-KR");
   }
 
   function personName(uid, email) {
-    const profile = profiles.find(p => p.uid === uid);
+    const profile = profiles.find(
+      p => p.uid === uid
+    );
 
     return profile
       ? `${profile.name} (${profile.email})`
       : email || uid || "-";
   }
+
+  function categoryName(item) {
+    const category =
+      typeof item.category === "string"
+        ? item.category.trim()
+        : "";
+
+    return category || "미분류";
+  }
+
+  function categorySelect(selected = "") {
+    const select = document.createElement("select");
+
+    select.style.padding = "10px";
+    select.style.borderRadius = "8px";
+    select.style.background = "#202936";
+    select.style.color = "white";
+    select.style.border = "1px solid #70829a";
+    select.style.maxWidth = "100%";
+
+    const empty = document.createElement("option");
+    empty.value = "";
+    empty.textContent = "카테고리 선택";
+    select.appendChild(empty);
+
+    for (const category of CATEGORIES) {
+      const option = document.createElement("option");
+      option.value = category;
+      option.textContent = category;
+
+      select.appendChild(option);
+    }
+
+    // 기존 데이터에 사용자 정의 카테고리가 있을 경우 유지
+    if (
+      selected &&
+      !CATEGORIES.includes(selected)
+    ) {
+      const old = document.createElement("option");
+      old.value = selected;
+      old.textContent = selected + " (기존)";
+      select.appendChild(old);
+    }
+
+    select.value = selected;
+    return select;
+  }
+
+  // ========================================
+  // 대시보드 통계
+  // ========================================
 
   function renderCounts() {
     const available = equipment.filter(
@@ -73,6 +148,7 @@
     ).length;
 
     const today = new Date();
+
     const todayText = [
       today.getFullYear(),
       String(today.getMonth() + 1).padStart(2, "0"),
@@ -122,8 +198,18 @@
     if (!confirmed) return;
 
     const originalAdminUid = adminUid;
-    const itemRef = doc(db, "equipment", item.id);
-    const loanRef = doc(db, "loans", loan.id);
+
+    const itemRef = doc(
+      db,
+      "equipment",
+      item.id
+    );
+
+    const loanRef = doc(
+      db,
+      "loans",
+      loan.id
+    );
 
     button.disabled = true;
 
@@ -154,15 +240,22 @@
         });
       });
 
-      if (authenticated && adminUid === originalAdminUid) {
+      if (
+        authenticated &&
+        adminUid === originalAdminUid
+      ) {
         notice(
           item.name +
-          " 관리자 대리 반납 완료! 대여 기록은 보관됩니다."
+          " 관리자 대리 반납 완료! " +
+          "대여 기록은 보관됩니다."
         );
       }
 
     } catch (error) {
-      console.error("관리자 대리 반납 오류:", error);
+      console.error(
+        "관리자 대리 반납 오류:",
+        error
+      );
 
       if (error.message === "NOT_ACTIVE") {
         notice(
@@ -172,21 +265,92 @@
 
       } else if (error.code === "permission-denied") {
         notice(
-          "Firestore 보안 규칙이 관리자 대리 반납을 " +
-          "허용하지 않습니다. 규칙 확인이 필요해요.",
+          "Firestore 규칙이 관리자 대리 반납을 " +
+          "허용하지 않습니다.",
           true
         );
 
       } else {
         notice(
-          "관리자 대리 반납에 실패했습니다. " +
-          "연결 상태를 확인해 주세요.",
+          "관리자 대리 반납에 실패했습니다.",
           true
         );
       }
 
     } finally {
       button.disabled = false;
+    }
+  }
+
+  // ========================================
+  // 기존 물품 카테고리 변경
+  // ========================================
+
+  async function changeCategory(
+    item,
+    select,
+    button
+  ) {
+    if (!authenticated || !adminUid) return;
+
+    const category = select.value;
+
+    if (
+      !category ||
+      !CATEGORIES.includes(category)
+    ) {
+      notice(
+        "변경할 카테고리를 선택해 주세요.",
+        true
+      );
+      return;
+    }
+
+    if (category === item.category) {
+      notice("이미 해당 카테고리입니다.");
+      return;
+    }
+
+    const confirmed = confirm(
+      item.name + " 물품의 카테고리를\n" +
+      category + "(으)로 변경할까요?"
+    );
+
+    if (!confirmed) return;
+
+    button.disabled = true;
+    select.disabled = true;
+
+    try {
+      await updateDoc(
+        doc(db, "equipment", item.id),
+        { category }
+      );
+
+      notice(
+        item.name +
+        " 카테고리를 변경했어요."
+      );
+
+    } catch (error) {
+      console.error(
+        "카테고리 변경 오류:",
+        error
+      );
+
+      notice(
+        error.code === "permission-denied"
+          ? "카테고리 변경은 새 Firestore " +
+            "보안 규칙 적용 후 사용할 수 있어요."
+          : "카테고리 변경에 실패했습니다.",
+        true
+      );
+
+      select.value = item.category || "";
+
+    } finally {
+      button.disabled = false;
+      select.disabled = false;
     }
   }
 
@@ -199,7 +363,8 @@
     table.replaceChildren();
 
     const keyword = $("searchInput").value
-      .trim().toLowerCase();
+      .trim()
+      .toLowerCase();
 
     const filtered = equipment.filter(item => {
       const activeLoan = loans.find(
@@ -214,13 +379,26 @@
         : "";
 
       return (
-        (item.name || "").toLowerCase().includes(keyword) ||
-        (item.description || "").toLowerCase().includes(keyword) ||
-        borrower.toLowerCase().includes(keyword)
+        (item.name || "")
+          .toLowerCase()
+          .includes(keyword) ||
+
+        (item.description || "")
+          .toLowerCase()
+          .includes(keyword) ||
+
+        categoryName(item)
+          .toLowerCase()
+          .includes(keyword) ||
+
+        borrower
+          .toLowerCase()
+          .includes(keyword)
       );
     });
 
-    $("adminEmptyMessage").hidden = filtered.length > 0;
+    $("adminEmptyMessage").hidden =
+      filtered.length > 0;
 
     for (const item of filtered) {
       const row = document.createElement("tr");
@@ -229,15 +407,30 @@
         x => x.id === item.activeLoanId
       );
 
+      // 물품명 및 카테고리
       const nameCell = cell(row, item.name);
 
+      const categoryLabel =
+        document.createElement("div");
+
+      categoryLabel.className = "hint";
+      categoryLabel.textContent =
+        "카테고리: " + categoryName(item);
+
+      nameCell.appendChild(categoryLabel);
+
       if (item.description) {
-        const description = document.createElement("div");
+        const description =
+          document.createElement("div");
+
         description.className = "hint";
-        description.textContent = item.description;
+        description.textContent =
+          item.description;
+
         nameCell.appendChild(description);
       }
 
+      // 상태
       cell(
         row,
         item.status === "available"
@@ -245,6 +438,7 @@
           : "대여 중"
       );
 
+      // 대여자
       cell(
         row,
         activeLoan
@@ -255,6 +449,7 @@
           : "-"
       );
 
+      // 대여일
       cell(
         row,
         activeLoan
@@ -262,12 +457,59 @@
           : "-"
       );
 
-      cell(row, activeLoan ? activeLoan.dueDate : "-");
+      // 반납예정일
+      cell(
+        row,
+        activeLoan ? activeLoan.dueDate : "-"
+      );
 
       const action = document.createElement("td");
 
+      action.style.minWidth = "170px";
+
+      // 기존 물품의 카테고리 지정
+      const categoryControls =
+        document.createElement("div");
+
+      categoryControls.style.display = "grid";
+      categoryControls.style.gap = "6px";
+      categoryControls.style.marginBottom = "10px";
+
+      const currentCategory =
+        typeof item.category === "string"
+          ? item.category
+          : "";
+
+      const select = categorySelect(
+        currentCategory
+      );
+
+      const saveButton =
+        document.createElement("button");
+
+      saveButton.type = "button";
+      saveButton.className = "button primary";
+      saveButton.textContent = "카테고리 저장";
+
+      saveButton.onclick = () => {
+        changeCategory(
+          item,
+          select,
+          saveButton
+        );
+      };
+
+      categoryControls.append(
+        select,
+        saveButton
+      );
+
+      action.appendChild(categoryControls);
+
+      // 기존 물품 삭제
       if (item.status === "available") {
-        const button = document.createElement("button");
+        const button =
+          document.createElement("button");
 
         button.type = "button";
         button.textContent = "삭제";
@@ -276,19 +518,30 @@
         button.onclick = async () => {
           if (!authenticated) return;
 
-          if (!confirm(item.name + "을(를) 삭제할까요?")) {
+          if (
+            !confirm(
+              item.name + "을(를) 삭제할까요?"
+            )
+          ) {
             return;
           }
 
           button.disabled = true;
 
           try {
-            await deleteDoc(doc(db, "equipment", item.id));
+            await deleteDoc(
+              doc(db, "equipment", item.id)
+            );
+
             notice("물품 삭제 완료");
 
           } catch (error) {
             console.error(error);
-            notice("물품 삭제 실패", true);
+            notice(
+              "물품 삭제 실패",
+              true
+            );
+
             button.disabled = false;
           }
         };
@@ -300,19 +553,31 @@
         activeLoan &&
         activeLoan.status === "active"
       ) {
-        const button = document.createElement("button");
+        const button =
+          document.createElement("button");
 
         button.type = "button";
         button.textContent = "관리자 반납";
         button.className = "button primary";
 
-        button.onclick = () =>
-          adminReturn(item, activeLoan, button);
+        button.onclick = () => {
+          adminReturn(
+            item,
+            activeLoan,
+            button
+          );
+        };
 
         action.appendChild(button);
 
       } else {
-        action.textContent = "대여 정보 확인 필요";
+        const info =
+          document.createElement("div");
+
+        info.textContent =
+          "대여 정보 확인 필요";
+
+        action.appendChild(info);
       }
 
       row.appendChild(action);
@@ -323,18 +588,22 @@
   }
 
   // ========================================
-  // CSV 다운로드 기능
+  // CSV 다운로드
   // ========================================
 
-  // 엑셀에서 사용자 입력이 수식으로 실행되지 않도록 방지
   function csvSafe(value) {
-    let text = value == null ? "" : String(value);
+    let text = value == null
+      ? ""
+      : String(value);
 
-    if (/^\s*[=+\-@]/.test(text)) {
+    // 엑셀 수식 실행 방지
+    if (/^\s*[=+\-@\t\r\n]/.test(text)) {
       text = "'" + text;
     }
 
-    return '"' + text.replace(/"/g, '""') + '"';
+    return '"' +
+      text.replace(/"/g, '""') +
+      '"';
   }
 
   function csvDate(timestamp) {
@@ -349,19 +618,17 @@
     const pad = value =>
       String(value).padStart(2, "0");
 
-    const datePart = [
+    return [
       date.getFullYear(),
       pad(date.getMonth() + 1),
       pad(date.getDate())
-    ].join("-");
-
-    const timePart = [
+    ].join("-") +
+    " " +
+    [
       pad(date.getHours()),
       pad(date.getMinutes()),
       pad(date.getSeconds())
     ].join(":");
-
-    return datePart + " " + timePart;
   }
 
   function exportLoanHistory() {
@@ -397,6 +664,7 @@
       "대여기록ID",
       "물품ID",
       "물품명",
+      "카테고리",
       "대여자이름",
       "대여자이메일",
       "대여자UID",
@@ -424,9 +692,12 @@
       rows.push([
         loan.id,
         loan.itemId,
-        item?.name || "(삭제되었거나 조회 불가한 물품)",
+        item?.name ||
+          "(삭제되었거나 조회 불가한 물품)",
+        item ? categoryName(item) : "미분류",
         profile?.name || "",
-        loan.borrowerEmail || profile?.email || "",
+        loan.borrowerEmail ||
+          profile?.email || "",
         loan.borrowerUid || "",
         csvDate(loan.borrowedAt),
         loan.dueDate || "",
@@ -439,18 +710,26 @@
       ]);
     }
 
-    const csv = "\uFEFF" + rows
-      .map(row => row.map(csvSafe).join(","))
-      .join("\r\n");
+    const csv = "\uFEFF" +
+      rows
+        .map(
+          row =>
+            row.map(csvSafe).join(",")
+        )
+        .join("\r\n");
 
     const blob = new Blob(
       [csv],
-      { type: "text/csv;charset=utf-8;" }
+      {
+        type: "text/csv;charset=utf-8;"
+      }
     );
 
-    const url = URL.createObjectURL(blob);
+    const url =
+      URL.createObjectURL(blob);
 
-    const anchor = document.createElement("a");
+    const anchor =
+      document.createElement("a");
 
     const now = new Date();
 
@@ -480,32 +759,36 @@
     );
   }
 
-  // 기존 admin.html을 수정하지 않고
-  // 대여 기록 영역에 다운로드 버튼 자동 추가
   function createDownloadButton() {
     if ($("downloadLoansCsv")) return;
 
-    const historyTable = $("historyTable");
+    const historyTable =
+      $("historyTable");
 
     const historySection =
       historyTable?.closest(".panel");
 
     const historyHeader =
-      historySection?.querySelector(".section-title");
+      historySection?.querySelector(
+        ".section-title"
+      );
 
     if (!historyHeader) {
       console.warn(
-        "CSV 다운로드 버튼을 추가할 영역을 찾지 못했습니다."
+        "CSV 다운로드 버튼을 넣을 영역을 찾지 못했습니다."
       );
       return;
     }
 
-    const button = document.createElement("button");
+    const button =
+      document.createElement("button");
 
     button.type = "button";
     button.id = "downloadLoansCsv";
     button.className = "button primary";
-    button.textContent = "⬇ 대여 기록 CSV 다운로드";
+    button.textContent =
+      "⬇ 대여 기록 CSV 다운로드";
+
     button.disabled = true;
 
     button.addEventListener(
@@ -517,7 +800,8 @@
   }
 
   function updateDownloadButton() {
-    const button = $("downloadLoansCsv");
+    const button =
+      $("downloadLoansCsv");
 
     if (!button) return;
 
@@ -532,7 +816,7 @@
   createDownloadButton();
 
   // ========================================
-  // 대여 및 반납 기록 화면
+  // 대여 및 반납 기록
   // ========================================
 
   function renderHistory() {
@@ -545,16 +829,21 @@
         (a.borrowedAt?.seconds || 0)
     );
 
-    $("historyEmpty").hidden = sorted.length > 0;
+    $("historyEmpty").hidden =
+      sorted.length > 0;
 
     for (const loan of sorted) {
-      const row = document.createElement("tr");
+      const row =
+        document.createElement("tr");
 
       const item = equipment.find(
         x => x.id === loan.itemId
       );
 
-      cell(row, item?.name || loan.itemId);
+      cell(
+        row,
+        item?.name || loan.itemId
+      );
 
       cell(
         row,
@@ -564,9 +853,17 @@
         )
       );
 
-      cell(row, dateValue(loan.borrowedAt));
+      cell(
+        row,
+        dateValue(loan.borrowedAt)
+      );
+
       cell(row, loan.dueDate);
-      cell(row, dateValue(loan.returnedAt));
+
+      cell(
+        row,
+        dateValue(loan.returnedAt)
+      );
 
       cell(
         row,
@@ -580,7 +877,7 @@
   }
 
   // ========================================
-  // 직원 승인, 이용 중지, 재활성화
+  // 직원 승인 및 계정 상태 관리
   // ========================================
 
   function renderProfiles() {
@@ -593,52 +890,90 @@
       blocked: 2
     };
 
-    const sorted = [...profiles].sort((a, b) => {
-      const pa = priority[a.status] ?? 3;
-      const pb = priority[b.status] ?? 3;
+    const sorted = [...profiles].sort(
+      (a, b) => {
+        const pa =
+          priority[a.status] ?? 3;
 
-      return pa - pb ||
-        (a.name || "").localeCompare(b.name || "", "ko");
-    });
+        const pb =
+          priority[b.status] ?? 3;
+
+        return (
+          pa - pb ||
+          (a.name || "").localeCompare(
+            b.name || "",
+            "ko"
+          )
+        );
+      }
+    );
 
     for (const profile of sorted) {
-      const row = document.createElement("tr");
+      const row =
+        document.createElement("tr");
 
       const nameCell = cell(
         row,
         profile.name
       );
 
-      const email = document.createElement("div");
+      const email =
+        document.createElement("div");
+
       email.className = "hint";
       email.textContent = profile.email;
 
       nameCell.appendChild(email);
 
-      const statusCell = document.createElement("td");
-      const statusText = document.createElement("span");
-      const button = document.createElement("button");
+      const statusCell =
+        document.createElement("td");
+
+      const statusText =
+        document.createElement("span");
+
+      const button =
+        document.createElement("button");
 
       button.type = "button";
 
       if (profile.status === "pending") {
-        statusText.textContent = "승인 대기 ";
-        button.textContent = "승인하기";
-        button.className = "button primary";
+        statusText.textContent =
+          "승인 대기 ";
 
-      } else if (profile.status === "approved") {
-        statusText.textContent = "✅ 이용 가능 ";
-        button.textContent = "이용 중지";
-        button.className = "button danger";
+        button.textContent =
+          "승인하기";
 
-      } else if (profile.status === "blocked") {
-        statusText.textContent = "⛔ 이용 중지 ";
-        button.textContent = "재활성화";
-        button.className = "button primary";
+        button.className =
+          "button primary";
+
+      } else if (
+        profile.status === "approved"
+      ) {
+        statusText.textContent =
+          "✅ 이용 가능 ";
+
+        button.textContent =
+          "이용 중지";
+
+        button.className =
+          "button danger";
+
+      } else if (
+        profile.status === "blocked"
+      ) {
+        statusText.textContent =
+          "⛔ 이용 중지 ";
+
+        button.textContent =
+          "재활성화";
+
+        button.className =
+          "button primary";
 
       } else {
         statusCell.textContent =
-          "알 수 없는 상태: " + String(profile.status);
+          "알 수 없는 상태: " +
+          String(profile.status);
 
         row.appendChild(statusCell);
         table.appendChild(row);
@@ -660,15 +995,19 @@
         if (profile.status === "pending") {
           message =
             profile.name +
-            " (" + profile.email + ") 직원의 가입을 승인할까요?\n" +
-            "직원 본인인지 확인한 경우에만 승인해 주세요.";
+            " (" + profile.email + ")" +
+            " 직원의 가입을 승인할까요?\n" +
+            "직원 본인인지 확인한 경우에만 " +
+            "승인해 주세요.";
 
           changes = {
             status: "approved",
             approvedAt: serverTimestamp()
           };
 
-        } else if (profile.status === "approved") {
+        } else if (
+          profile.status === "approved"
+        ) {
           message =
             profile.name +
             " 직원의 QRental 이용을 중지할까요?\n" +
@@ -678,8 +1017,9 @@
             message +=
               "\n\n주의: 현재 대여 중인 물품 " +
               activeCount +
-              "건이 있습니다. 실제 물품을 회수한 뒤 " +
-              "물품 현황의 관리자 반납 버튼으로 처리해 주세요.";
+              "건이 있습니다. " +
+              "실제 물품을 회수한 뒤 " +
+              "관리자 반납으로 처리해 주세요.";
           }
 
           changes = {
@@ -689,8 +1029,10 @@
         } else {
           message =
             profile.name +
-            " 직원의 QRental 이용을 다시 허용할까요?\n" +
-            "이메일 인증도 완료되어 있어야 이용할 수 있습니다.";
+            " 직원의 QRental 이용을 " +
+            "다시 허용할까요?\n" +
+            "이메일 인증도 완료되어 있어야 " +
+            "이용할 수 있습니다.";
 
           changes = {
             status: "approved"
@@ -703,17 +1045,22 @@
 
         try {
           await updateDoc(
-            doc(db, "profiles", profile.uid),
+            doc(
+              db,
+              "profiles",
+              profile.uid
+            ),
             changes
           );
 
           notice(
-            profile.name + " 직원 상태 변경 완료"
+            profile.name +
+            " 직원 상태 변경 완료"
           );
 
         } catch (error) {
           console.error(
-            "직원 상태 변경 실패:",
+            "직원 상태 변경 오류:",
             error
           );
 
@@ -744,7 +1091,57 @@
   }
 
   // ========================================
-  // 물품 등록
+  // 물품 등록 시 카테고리 선택창 생성
+  // ========================================
+
+  function createRegistrationCategory() {
+    if ($("itemCategory")) return;
+
+    const form = $("itemForm");
+
+    const label =
+      document.createElement("label");
+
+    label.textContent = "물품 카테고리";
+
+    const select =
+      categorySelect("");
+
+    select.id = "itemCategory";
+    select.name = "category";
+    select.required = true;
+    select.style.width = "100%";
+
+    label.appendChild(select);
+
+    const submitButton =
+      form.querySelector(
+        'button[type="submit"]'
+      );
+
+    form.insertBefore(
+      label,
+      submitButton
+    );
+
+    const hint =
+      document.createElement("p");
+
+    hint.className = "hint";
+    hint.textContent =
+      "카테고리 저장은 새 Firestore " +
+      "보안 규칙 적용 후 사용할 수 있어요.";
+
+    form.insertBefore(
+      hint,
+      submitButton
+    );
+  }
+
+  createRegistrationCategory();
+
+  // ========================================
+  // 새 물품 등록
   // ========================================
 
   $("itemForm").addEventListener(
@@ -754,25 +1151,34 @@
 
       if (!authenticated) return;
 
-      const name = $("itemName").value.trim();
+      const name =
+        $("itemName").value.trim();
+
       const description =
         $("itemDescription").value.trim();
+
+      const category =
+        $("itemCategory").value;
 
       if (
         !name ||
         name.length > 80 ||
-        description.length > 150
+        description.length > 150 ||
+        !CATEGORIES.includes(category)
       ) {
         notice(
-          "물품 이름과 설명을 확인해 주세요.",
+          "물품 이름, 설명, 카테고리를 " +
+          "확인해 주세요.",
           true
         );
+
         return;
       }
 
-      const button = event.target.querySelector(
-        'button[type="submit"]'
-      );
+      const button =
+        event.target.querySelector(
+          'button[type="submit"]'
+        );
 
       button.disabled = true;
 
@@ -782,6 +1188,7 @@
           {
             name,
             description,
+            category,
             createdAt: serverTimestamp(),
             status: "available",
             activeLoanId: ""
@@ -791,13 +1198,25 @@
         event.target.reset();
 
         notice(
-          "물품이 Firebase에 등록됐어요! " +
-          "QR코드 관리 화면에서 확인할 수 있습니다."
+          "물품이 등록됐어요! " +
+          "QR코드 관리 화면에서 " +
+          "확인할 수 있습니다."
         );
 
       } catch (error) {
-        console.error(error);
-        notice("물품 등록 실패", true);
+        console.error(
+          "물품 등록 오류:",
+          error
+        );
+
+        notice(
+          error.code === "permission-denied"
+            ? "현재 Firestore 규칙에서는 " +
+              "카테고리 저장을 허용하지 않습니다. " +
+              "새 규칙 적용 후 다시 시도해 주세요."
+            : "물품 등록에 실패했습니다.",
+          true
+        );
 
       } finally {
         button.disabled = false;
@@ -815,172 +1234,197 @@
   // ========================================
 
   function stopListeners() {
-    if (unsubEquipment) unsubEquipment();
-    if (unsubLoans) unsubLoans();
-    if (unsubProfiles) unsubProfiles();
+    if (unsubEquipment) {
+      unsubEquipment();
+    }
+
+    if (unsubLoans) {
+      unsubLoans();
+    }
+
+    if (unsubProfiles) {
+      unsubProfiles();
+    }
 
     unsubEquipment = null;
     unsubLoans = null;
     unsubProfiles = null;
   }
 
-  onAuthStateChanged(auth, async user => {
-    generation++;
+  onAuthStateChanged(
+    auth,
+    async user => {
+      generation++;
 
-    const currentGeneration = generation;
+      const currentGeneration =
+        generation;
 
-    stopListeners();
+      stopListeners();
 
-    authenticated = false;
-    adminUid = null;
+      authenticated = false;
+      adminUid = null;
 
-    equipment = [];
-    loans = [];
-    profiles = [];
+      equipment = [];
+      loans = [];
+      profiles = [];
 
-    equipmentLoaded = false;
-    loansLoaded = false;
-    profilesLoaded = false;
+      equipmentLoaded = false;
+      loansLoaded = false;
+      profilesLoaded = false;
 
-    refresh();
+      refresh();
 
-    if (!user) return;
+      if (!user) return;
 
-    try {
-      const snapshot = await getDoc(
-        doc(db, "admins", user.uid)
-      );
+      try {
+        const snapshot = await getDoc(
+          doc(
+            db,
+            "admins",
+            user.uid
+          )
+        );
 
-      if (currentGeneration !== generation) {
-        return;
-      }
+        if (
+          currentGeneration !== generation
+        ) {
+          return;
+        }
 
-      if (
-        !snapshot.exists() ||
-        snapshot.data().role !== "admin"
-      ) {
+        if (
+          !snapshot.exists() ||
+          snapshot.data().role !== "admin"
+        ) {
+          notice(
+            "관리자 권한이 없습니다.",
+            true
+          );
+
+          return;
+        }
+
+        authenticated = true;
+        adminUid = user.uid;
+
+        unsubEquipment = onSnapshot(
+          collection(db, "equipment"),
+          snapshot => {
+            if (
+              currentGeneration !== generation
+            ) {
+              return;
+            }
+
+            equipment =
+              snapshot.docs.map(d => ({
+                id: d.id,
+                ...d.data()
+              }));
+
+            equipmentLoaded = true;
+            refresh();
+          },
+          error => {
+            console.error(
+              "물품 조회 오류:",
+              error
+            );
+
+            equipmentLoaded = false;
+            updateDownloadButton();
+
+            notice(
+              "물품 목록 조회 실패",
+              true
+            );
+          }
+        );
+
+        unsubLoans = onSnapshot(
+          collection(db, "loans"),
+          snapshot => {
+            if (
+              currentGeneration !== generation
+            ) {
+              return;
+            }
+
+            loans =
+              snapshot.docs.map(d => ({
+                id: d.id,
+                ...d.data()
+              }));
+
+            loansLoaded = true;
+            refresh();
+          },
+          error => {
+            console.error(
+              "대여 기록 오류:",
+              error
+            );
+
+            loansLoaded = false;
+            updateDownloadButton();
+
+            notice(
+              "대여 기록 조회 실패",
+              true
+            );
+          }
+        );
+
+        unsubProfiles = onSnapshot(
+          collection(db, "profiles"),
+          snapshot => {
+            if (
+              currentGeneration !== generation
+            ) {
+              return;
+            }
+
+            profiles =
+              snapshot.docs.map(d => ({
+                id: d.id,
+                ...d.data()
+              }));
+
+            profilesLoaded = true;
+            refresh();
+          },
+          error => {
+            console.error(
+              "직원 목록 오류:",
+              error
+            );
+
+            profilesLoaded = false;
+            updateDownloadButton();
+
+            notice(
+              "직원 목록 조회 실패",
+              true
+            );
+          }
+        );
+
         notice(
-          "관리자 권한이 없습니다.",
+          "QRental 관리자 데이터 연결 완료"
+        );
+
+      } catch (error) {
+        console.error(
+          "관리자 권한 확인 오류:",
+          error
+        );
+
+        notice(
+          "관리자 권한 확인 실패",
           true
         );
-        return;
       }
-
-      authenticated = true;
-      adminUid = user.uid;
-
-      unsubEquipment = onSnapshot(
-        collection(db, "equipment"),
-        snapshot => {
-          if (currentGeneration !== generation) {
-            return;
-          }
-
-          equipment = snapshot.docs.map(d => ({
-            id: d.id,
-            ...d.data()
-          }));
-
-          equipmentLoaded = true;
-
-          refresh();
-        },
-        error => {
-          console.error(
-            "물품 조회 오류:",
-            error
-          );
-
-          equipmentLoaded = false;
-          updateDownloadButton();
-
-          notice(
-            "물품 목록 조회 실패",
-            true
-          );
-        }
-      );
-
-      unsubLoans = onSnapshot(
-        collection(db, "loans"),
-        snapshot => {
-          if (currentGeneration !== generation) {
-            return;
-          }
-
-          loans = snapshot.docs.map(d => ({
-            id: d.id,
-            ...d.data()
-          }));
-
-          loansLoaded = true;
-
-          refresh();
-        },
-        error => {
-          console.error(
-            "대여 기록 오류:",
-            error
-          );
-
-          loansLoaded = false;
-          updateDownloadButton();
-
-          notice(
-            "대여 기록 조회 실패",
-            true
-          );
-        }
-      );
-
-      unsubProfiles = onSnapshot(
-        collection(db, "profiles"),
-        snapshot => {
-          if (currentGeneration !== generation) {
-            return;
-          }
-
-          profiles = snapshot.docs.map(d => ({
-            id: d.id,
-            ...d.data()
-          }));
-
-          profilesLoaded = true;
-
-          refresh();
-        },
-        error => {
-          console.error(
-            "직원 목록 오류:",
-            error
-          );
-
-          profilesLoaded = false;
-          updateDownloadButton();
-
-          notice(
-            "직원 목록 조회 실패",
-            true
-          );
-        }
-      );
-
-      notice(
-        "QRental 관리자 데이터 연결 완료"
-      );
-
-    } catch (error) {
-      console.error(
-        "관리자 권한 확인 오류:",
-        error
-      );
-
-      notice(
-        "관리자 권한 확인 실패",
-        true
-      );
     }
-  });
+  );
 
 })().catch(error => {
   console.error(
