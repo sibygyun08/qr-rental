@@ -1,0 +1,504 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1">
+
+  <title>QRental | 카테고리 관리</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <style>
+    [hidden] {
+      display: none !important;
+    }
+
+    body {
+      margin: 0;
+      background: #202936;
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+    }
+
+    .wrap {
+      max-width: 800px;
+      margin: 36px auto;
+      padding: 20px;
+    }
+
+    .panel {
+      background: #303d4d;
+      border: 1px solid #485667;
+      border-radius: 18px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    h1, h2 {
+      margin-top: 0;
+    }
+
+    .hint {
+      color: #c0d0e1;
+      line-height: 1.7;
+    }
+
+    .input {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 13px;
+      border: 1px solid #64748b;
+      border-radius: 10px;
+      background: #202936;
+      color: white;
+      font-size: 16px;
+    }
+
+    .button {
+      padding: 12px 18px;
+      border: 0;
+      border-radius: 10px;
+      background: #86b7f2;
+      color: #14243a;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .form {
+      display: grid;
+      gap: 12px;
+    }
+
+    .category {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 15px 0;
+      border-bottom: 1px solid #536174;
+    }
+
+    .tag {
+      border-radius: 8px;
+      padding: 5px 9px;
+      background: #425773;
+      color: #e1efff;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .notice {
+      padding: 14px;
+      border-radius: 10px;
+      background: #243548;
+      color: #d5e7fa;
+      line-height: 1.6;
+    }
+
+    .error {
+      color: #ffb7b7;
+    }
+
+    .success {
+      color: #a6f3c4;
+    }
+
+    a {
+      color: #86b7f2;
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="wrap">
+
+    <p>
+      <a href="admin.html">
+        ← 관리자 대시보드로 돌아가기
+      </a>
+    </p>
+
+    <section class="panel">
+
+      <h1>📁 물품 카테고리 관리</h1>
+
+      <p class="hint">
+        QRental의 물품 분류를 직접 추가할 수 있어요.
+        등록한 카테고리는 Firebase에 저장됩니다.
+      </p>
+
+      <p id="authStatus" class="hint">
+        관리자 권한 확인 중...
+      </p>
+
+    </section>
+
+    <div id="managerArea" hidden>
+
+      <section class="panel">
+
+        <h2>새 카테고리 추가</h2>
+
+        <form id="categoryForm" class="form">
+
+          <label for="categoryName">
+            카테고리 이름
+          </label>
+
+          <input
+            id="categoryName"
+            class="input"
+            type="text"
+            maxlength="30"
+            placeholder="예: 빔프로젝터"
+            required
+          >
+
+          <button
+            id="addButton"
+            class="button"
+            type="submit"
+          >
+            + 카테고리 추가
+          </button>
+
+        </form>
+
+        <p class="hint">
+          같은 이름의 카테고리는 중복 등록할 수 없어요.
+          등록한 카테고리는 현재 삭제할 수 없습니다.
+        </p>
+
+      </section>
+
+      <section class="panel">
+
+        <h2>등록된 카테고리</h2>
+
+        <p id="categoryCount" class="hint"></p>
+
+        <div id="categoryList"></div>
+
+      </section>
+
+    </div>
+
+    <p
+      id="notice"
+      class="notice"
+      role="status"
+      aria-live="polite"
+    ></p>
+
+  </main>
+
+  <script type="module">
+
+    import {
+      auth,
+      db
+    } from "./firebase-config.js";
+
+    import {
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js";
+
+    import {
+      collection,
+      doc,
+      getDoc,
+      onSnapshot,
+      setDoc,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js";
+
+    const $ = id => document.getElementById(id);
+
+    const DEFAULT_CATEGORIES = [
+      "노트북",
+      "태블릿",
+      "촬영 장비",
+      "주변기기",
+      "기타"
+    ];
+
+    let isAdmin = false;
+    let customCategories = [];
+    let unsubscribe = null;
+    let generation = 0;
+
+    function notice(message, error = false) {
+      $("notice").textContent = message;
+
+      $("notice").className =
+        "notice " + (error ? "error" : "success");
+    }
+
+    function normalizeName(value) {
+      return value.trim().replace(/\s+/g, " ");
+    }
+
+    function sameName(a, b) {
+      return normalizeName(a)
+        .toLocaleLowerCase("ko") ===
+        normalizeName(b)
+          .toLocaleLowerCase("ko");
+    }
+
+    function allCategories() {
+      const result = [...DEFAULT_CATEGORIES];
+
+      for (const item of customCategories) {
+        if (
+          !result.some(
+            name => sameName(name, item.name)
+          )
+        ) {
+          result.push(item.name);
+        }
+      }
+
+      return result;
+    }
+
+    function renderCategories() {
+      const list = $("categoryList");
+      list.replaceChildren();
+
+      const all = allCategories();
+
+      $("categoryCount").textContent =
+        "총 " + all.length + "개 카테고리";
+
+      for (const name of all) {
+        const row = document.createElement("div");
+        row.className = "category";
+
+        const title = document.createElement("strong");
+        title.textContent = name;
+
+        const tag = document.createElement("span");
+        tag.className = "tag";
+
+        tag.textContent =
+          DEFAULT_CATEGORIES.includes(name)
+            ? "기본 카테고리"
+            : "직접 추가";
+
+        row.append(title, tag);
+        list.appendChild(row);
+      }
+    }
+
+    $("categoryForm").addEventListener(
+      "submit",
+      async event => {
+        event.preventDefault();
+
+        if (!isAdmin) {
+          notice(
+            "관리자 권한이 필요합니다.",
+            true
+          );
+          return;
+        }
+
+        const name = normalizeName(
+          $("categoryName").value
+        );
+
+        if (
+          !name ||
+          name.length > 30 ||
+          name.includes("/")
+        ) {
+          notice(
+            "카테고리 이름은 1~30자이며 " +
+            "/ 문자는 사용할 수 없어요.",
+            true
+          );
+          return;
+        }
+
+        if (
+          allCategories().some(
+            existing => sameName(existing, name)
+          )
+        ) {
+          notice(
+            "이미 등록된 카테고리입니다.",
+            true
+          );
+          return;
+        }
+
+        const button = $("addButton");
+        button.disabled = true;
+
+        try {
+          const ref = doc(
+            db,
+            "categories",
+            name
+          );
+
+          // 다른 관리자가 먼저 같은 이름을
+          // 추가했는지 다시 확인
+          const existing = await getDoc(ref);
+
+          if (existing.exists()) {
+            notice(
+              "이미 등록된 카테고리입니다.",
+              true
+            );
+            return;
+          }
+
+          // 문서 ID를 이름과 동일하게 지정
+          // 보안 규칙과 저장 방식 일치
+          await setDoc(ref, {
+            name,
+            createdAt: serverTimestamp()
+          });
+
+          $("categoryForm").reset();
+
+          notice(
+            name + " 카테고리를 등록했어요! 🎉"
+          );
+
+        } catch (error) {
+          console.error(
+            "카테고리 등록 오류:",
+            error
+          );
+
+          notice(
+            error.code === "permission-denied"
+              ? "Firebase 카테고리 보안 규칙이 " +
+                "아직 적용되지 않았어요."
+              : "카테고리 등록에 실패했습니다.",
+            true
+          );
+
+        } finally {
+          button.disabled = false;
+        }
+      }
+    );
+
+    onAuthStateChanged(
+      auth,
+      async user => {
+        generation++;
+
+        const currentGeneration = generation;
+
+        if (unsubscribe) {
+          unsubscribe();
+          unsubscribe = null;
+        }
+
+        isAdmin = false;
+        customCategories = [];
+
+        $("managerArea").hidden = true;
+        $("authStatus").textContent =
+          "관리자 권한 확인 중...";
+
+        renderCategories();
+
+        if (!user) {
+          $("authStatus").textContent =
+            "로그인이 필요합니다. " +
+            "관리자 대시보드에서 로그인해 주세요.";
+          return;
+        }
+
+        try {
+          const adminDoc = await getDoc(
+            doc(
+              db,
+              "admins",
+              user.uid
+            )
+          );
+
+          if (
+            currentGeneration !== generation
+          ) {
+            return;
+          }
+
+          if (
+            !adminDoc.exists() ||
+            adminDoc.data().role !== "admin"
+          ) {
+            $("authStatus").textContent =
+              "관리자 권한이 없습니다.";
+            return;
+          }
+
+          isAdmin = true;
+
+          $("authStatus").textContent =
+            "✅ 관리자 인증 완료";
+
+          $("managerArea").hidden = false;
+
+          unsubscribe = onSnapshot(
+            collection(db, "categories"),
+            snapshot => {
+              if (
+                currentGeneration !== generation
+              ) {
+                return;
+              }
+
+              customCategories = snapshot.docs.map(
+                item => ({
+                  id: item.id,
+                  ...item.data()
+                })
+              );
+
+              renderCategories();
+            },
+            error => {
+              console.error(
+                "카테고리 목록 오류:",
+                error
+              );
+
+              notice(
+                "카테고리 목록을 불러오지 못했어요. " +
+                "보안 규칙을 확인해 주세요.",
+                true
+              );
+            }
+          );
+
+        } catch (error) {
+          console.error(
+            "관리자 권한 확인 오류:",
+            error
+          );
+
+          $("authStatus").textContent =
+            "관리자 권한 확인에 실패했습니다.";
+        }
+      }
+    );
+
+  </script>
+
+</body>
+</html>
